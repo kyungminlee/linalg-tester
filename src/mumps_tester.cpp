@@ -246,50 +246,6 @@ static SparseCOO expand_symmetric(const SparseCOO &lower, std::size_t typesize)
 }
 
 /* ------------------------------------------------------------------ */
-/* Extract double* array from custom-type array via conv-lib             */
-/* ------------------------------------------------------------------ */
-
-static double *custom_to_double_array(const void *src, int count,
-                                       std::size_t typesize,
-                                       custom_to_mpfr_fn to_mpfr,
-                                       mpfr_prec_t prec)
-{
-    double *out = static_cast<double *>(std::malloc(
-        static_cast<std::size_t>(count) * sizeof(double)));
-    if (!out) { std::perror("malloc"); std::exit(EXIT_FAILURE); }
-
-    mpfr_t tmp;
-    mpfr_init2(tmp, prec);
-
-    const char *p = static_cast<const char *>(src);
-    for (int i = 0; i < count; ++i) {
-        to_mpfr(tmp, p + static_cast<std::size_t>(i) * typesize);
-        out[i] = mpfr_get_d(tmp, MPFR_RNDN);
-    }
-
-    mpfr_clear(tmp);
-    return out;
-}
-
-/* Convert double* array back to custom-type array */
-static void double_to_custom_array(void *dst, const double *src, int count,
-                                    std::size_t typesize,
-                                    mpfr_to_custom_fn from_mpfr,
-                                    mpfr_prec_t prec)
-{
-    mpfr_t tmp;
-    mpfr_init2(tmp, prec);
-
-    char *p = static_cast<char *>(dst);
-    for (int i = 0; i < count; ++i) {
-        mpfr_set_d(tmp, src[i], MPFR_RNDN);
-        from_mpfr(p + static_cast<std::size_t>(i) * typesize, tmp, MPFR_RNDN);
-    }
-
-    mpfr_clear(tmp);
-}
-
-/* ------------------------------------------------------------------ */
 /* main                                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -362,9 +318,32 @@ int main(int argc, char **argv)
     void *x_true = gen_random_array(n, typesize, from_mpfr, prec, &seed_x);
     void *b = compute_rhs(coo, x_true, sym, typesize, to_mpfr, from_mpfr, prec);
 
-    /* Convert COO values and RHS to double arrays for MUMPS */
-    double *a_dbl   = custom_to_double_array(coo.vals, coo.nnz, typesize, to_mpfr, prec);
-    double *rhs_dbl = custom_to_double_array(b, n, typesize, to_mpfr, prec);
+    /* Convert custom-type COO values and RHS to double for MUMPS,
+     * going through the conv-lib: custom → mpfr → double */
+    double *a_dbl = static_cast<double *>(
+        std::malloc(static_cast<std::size_t>(coo.nnz) * sizeof(double)));
+    double *rhs_dbl = static_cast<double *>(
+        std::malloc(static_cast<std::size_t>(n) * sizeof(double)));
+    if (!a_dbl || !rhs_dbl) { std::perror("malloc"); return EXIT_FAILURE; }
+
+    {
+        mpfr_t tmp;
+        mpfr_init2(tmp, prec);
+
+        const char *vp = static_cast<const char *>(coo.vals);
+        for (int i = 0; i < coo.nnz; ++i) {
+            to_mpfr(tmp, vp + static_cast<std::size_t>(i) * typesize);
+            a_dbl[i] = mpfr_get_d(tmp, MPFR_RNDN);
+        }
+
+        const char *bp = static_cast<const char *>(b);
+        for (int i = 0; i < n; ++i) {
+            to_mpfr(tmp, bp + static_cast<std::size_t>(i) * typesize);
+            rhs_dbl[i] = mpfr_get_d(tmp, MPFR_RNDN);
+        }
+
+        mpfr_clear(tmp);
+    }
 
     /* --- MUMPS solve via DMUMPS_STRUC_C --- */
     DMUMPS_STRUC_C id;
@@ -426,10 +405,22 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    /* Convert double solution back to custom type for residual check */
+    /* Convert double solution back to custom type for residual check:
+     * double → mpfr → custom via conv-lib */
     void *rhs_custom = std::malloc(static_cast<std::size_t>(n) * typesize);
     if (!rhs_custom) { std::perror("malloc"); return EXIT_FAILURE; }
-    double_to_custom_array(rhs_custom, rhs_dbl, n, typesize, from_mpfr, prec);
+    {
+        mpfr_t tmp;
+        mpfr_init2(tmp, prec);
+
+        char *rp = static_cast<char *>(rhs_custom);
+        for (int i = 0; i < n; ++i) {
+            mpfr_set_d(tmp, rhs_dbl[i], MPFR_RNDN);
+            from_mpfr(rp + static_cast<std::size_t>(i) * typesize, tmp, MPFR_RNDN);
+        }
+
+        mpfr_clear(tmp);
+    }
 
     /* Compute residual.  For symmetric storage we need full COO for
      * the residual computation (reference_sparse_residual uses plain SpMV). */
