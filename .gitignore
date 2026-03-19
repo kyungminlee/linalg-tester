@@ -1,5 +1,7 @@
+build/
 gemm_tester
 trsm_tester
+mumps_tester
 src/*.o
 examples/**/*.so
 examples/**/stubs/
