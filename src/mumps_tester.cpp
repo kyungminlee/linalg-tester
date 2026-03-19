@@ -1,20 +1,28 @@
-/* mumps_tester: tests the MUMPS sparse direct solver by checking
+/* mumps_tester: tests a MUMPS-style sparse direct solver by checking
  * residual norms ||b - Ax|| / ||b|| in L1, L2, and Linf.
  *
- * Calls dmumps_c() (or the user-specified symbol) directly through
- * DMUMPS_STRUC_C, loaded at runtime via dlopen/dlsym.
+ * Calls the MUMPS entry point (e.g. dmumps_c, ddmumps_c, ...) directly
+ * through the MUMPS C struct, loaded at runtime via dlopen/dlsym.
+ *
+ * The struct field offsets are computed at runtime from --typesize so that
+ * custom-precision MUMPS builds (dd, qd, ...) work without recompilation.
+ * For the standard double case (typesize=8) the computed layout is verified
+ * against DMUMPS_STRUC_C at startup.
  *
  * Usage:
- *   mumps_tester --lib <libdmumps.so> --conv-lib <double_conv.so> \
- *                --typesize 8 --n 64 --sym 0 --density 0.1
+ *   mumps_tester --lib <libdmumps_seq.so> --mumps-sym dmumps_c \
+ *                --conv-lib <double_conv.so> --typesize 8 \
+ *                --n 64 --sym 0 --density 0.1
  */
 
 #include "reference.h"
 #include "tester_utils.h"
-#include "dmumps_struc.h"
+#include "dmumps_struc.h"   /* for offsetof verification when typesize==8 */
 
 #include "../third_party/CLI11.hpp"
 
+#include <cassert>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -22,6 +30,157 @@
 #include <vector>
 #include <dlfcn.h>
 #include <mpfr.h>
+
+/* ------------------------------------------------------------------ */
+/* Runtime MUMPS struct layout (MUMPS 5.6.2 field order)                */
+/* ------------------------------------------------------------------ */
+
+static std::size_t align_up(std::size_t off, std::size_t a)
+{
+    return (off + a - 1) & ~(a - 1);
+}
+
+/* Offsets of the MUMPS struct fields we actually touch. */
+struct MumpsOffsets {
+    std::size_t sym, par, job, comm_fortran;
+    std::size_t icntl;       /* start of icntl[60] */
+    std::size_t n, nz, nnz;
+    std::size_t irn, jcn, a; /* pointers */
+    std::size_t rhs;         /* pointer  */
+    std::size_t nrhs, lrhs;
+    std::size_t infog;       /* start of infog[80] */
+    std::size_t total;       /* sizeof the whole struct */
+};
+
+/* Walk the MUMPS 5.6.2 field list, advancing `off` with alignment,
+ * and record offsets of the fields we need. */
+static MumpsOffsets compute_mumps_layout(std::size_t real_size,
+                                          std::size_t real_align)
+{
+    MumpsOffsets F{};
+    std::size_t off = 0;
+
+    /* helpers — each aligns, records start, advances off */
+    auto add_int = [&](std::size_t cnt = 1) {
+        off = align_up(off, 4); auto o = off; off += 4 * cnt; return o;
+    };
+    auto add_int8 = [&](std::size_t cnt = 1) {
+        off = align_up(off, 8); auto o = off; off += 8 * cnt; return o;
+    };
+    auto add_ptr = [&](std::size_t cnt = 1) {
+        off = align_up(off, 8); auto o = off; off += 8 * cnt; return o;
+    };
+    auto add_real = [&](std::size_t cnt = 1) {
+        off = align_up(off, real_align); auto o = off;
+        off += real_size * cnt; return o;
+    };
+    auto add_char = [&](std::size_t cnt) {
+        auto o = off; off += cnt; return o;
+    };
+
+    /* macros that discard the returned offset */
+    #define SKIP(...) (void)(__VA_ARGS__)
+
+    /* --- MUMPS 5.6.2 field list, in declaration order --- */
+
+    F.sym            = add_int();           /* sym              */
+    F.par            = add_int();           /* par              */
+    F.job            = add_int();           /* job              */
+    F.comm_fortran   = add_int();           /* comm_fortran     */
+    F.icntl          = add_int(60);         /* icntl[60]        */
+    SKIP(              add_int(500));        /* keep[500]        */
+    SKIP(              add_real(15));        /* cntl[15]         */
+    SKIP(              add_real(230));       /* dkeep[230]       */
+    SKIP(              add_int8(150));       /* keep8[150]       */
+    F.n              = add_int();           /* n                */
+    SKIP(              add_int());          /* nblk             */
+    SKIP(              add_int());          /* nz_alloc         */
+    F.nz             = add_int();           /* nz               */
+    F.nnz            = add_int8();          /* nnz              */
+    F.irn            = add_ptr();           /* *irn             */
+    F.jcn            = add_ptr();           /* *jcn             */
+    F.a              = add_ptr();           /* *a               */
+    SKIP(              add_int());          /* nz_loc           */
+    SKIP(              add_int8());         /* nnz_loc          */
+    SKIP(              add_ptr(3));         /* irn_loc,jcn_loc,a_loc */
+    SKIP(              add_int());          /* nelt             */
+    SKIP(              add_ptr(3));         /* eltptr,eltvar,a_elt   */
+    SKIP(              add_ptr(2));         /* blkptr,blkvar    */
+    SKIP(              add_ptr());          /* perm_in          */
+    SKIP(              add_ptr(2));         /* sym_perm,uns_perm */
+    SKIP(              add_ptr(2));         /* colsca,rowsca    */
+    SKIP(              add_int(2));         /* colsca_from_mumps,rowsca_from_mumps */
+    F.rhs            = add_ptr();           /* *rhs             */
+    SKIP(              add_ptr(4));         /* redrhs,rhs_sparse,sol_loc,rhs_loc */
+    SKIP(              add_ptr(4));         /* irhs_sparse,irhs_ptr,isol_loc,irhs_loc */
+    F.nrhs           = add_int();           /* nrhs             */
+    F.lrhs           = add_int();           /* lrhs             */
+    SKIP(              add_int(5));         /* lredrhs,nz_rhs,lsol_loc,nloc_rhs,lrhs_loc */
+    SKIP(              add_int(7));         /* schur_mloc..npcol */
+    SKIP(              add_int(80));        /* info[80]         */
+    F.infog          = add_int(80);         /* infog[80]        */
+    SKIP(              add_real(40));       /* rinfo[40]        */
+    SKIP(              add_real(40));       /* rinfog[40]       */
+    SKIP(              add_int());          /* deficiency       */
+    SKIP(              add_ptr(2));         /* pivnul_list,mapping */
+    SKIP(              add_int());          /* size_schur       */
+    SKIP(              add_ptr(2));         /* listvar_schur,schur */
+    SKIP(              add_int());          /* instance_number  */
+    SKIP(              add_ptr());          /* wk_user          */
+    SKIP(              add_char(32));       /* version_number   */
+    SKIP(              add_char(256));      /* ooc_tmpdir       */
+    SKIP(              add_char(64));       /* ooc_prefix       */
+    SKIP(              add_char(256));      /* write_problem    */
+    SKIP(              add_int());          /* lwk_user         */
+    SKIP(              add_char(256));      /* save_dir         */
+    SKIP(              add_char(256));      /* save_prefix      */
+    SKIP(              add_int(40));        /* metis_options[40] */
+
+    #undef SKIP
+
+    /* struct alignment = max alignment of any member */
+    std::size_t struct_align = 8;
+    if (real_align > struct_align) struct_align = real_align;
+    F.total = align_up(off, struct_align);
+
+    return F;
+}
+
+/* Verify computed layout matches the real DMUMPS_STRUC_C for double. */
+static bool verify_layout_double(const MumpsOffsets &F)
+{
+    bool ok = true;
+    #define CHK(field) do { \
+        if (F.field != offsetof(DMUMPS_STRUC_C, field)) { \
+            std::fprintf(stderr, "  layout mismatch: %s computed=%zu actual=%zu\n", \
+                         #field, F.field, offsetof(DMUMPS_STRUC_C, field)); \
+            ok = false; \
+        } \
+    } while (0)
+
+    CHK(sym); CHK(par); CHK(job); CHK(comm_fortran);
+    CHK(icntl); CHK(n); CHK(nz); CHK(nnz);
+    CHK(irn); CHK(jcn); CHK(a); CHK(rhs);
+    CHK(nrhs); CHK(lrhs); CHK(infog);
+
+    if (F.total != sizeof(DMUMPS_STRUC_C)) {
+        std::fprintf(stderr, "  layout mismatch: total computed=%zu actual=%zu\n",
+                     F.total, sizeof(DMUMPS_STRUC_C));
+        ok = false;
+    }
+
+    #undef CHK
+    return ok;
+}
+
+/* ------------------------------------------------------------------ */
+/* Byte-level accessors for the MUMPS struct buffer                     */
+/* ------------------------------------------------------------------ */
+
+static void wr_int (char *buf, std::size_t off, int     v) { std::memcpy(buf+off, &v, 4); }
+static void wr_i64 (char *buf, std::size_t off, int64_t v) { std::memcpy(buf+off, &v, 8); }
+static void wr_ptr (char *buf, std::size_t off, void   *v) { std::memcpy(buf+off, &v, 8); }
+static int  rd_int (const char *buf, std::size_t off) { int v; std::memcpy(&v, buf+off, 4); return v; }
 
 /* ------------------------------------------------------------------ */
 /* Sparse matrix generation (COO, 1-based)                              */
@@ -49,13 +208,11 @@ static SparseCOO gen_sparse_matrix(int n, double density, int sym,
     SparseCOO coo;
     coo.n = n;
 
-    /* First pass: decide which entries exist */
     std::vector<std::pair<int,int>> entries;
 
     if (sym == 0) {
-        /* Unsymmetric: diagonal always present, off-diag with probability density */
         for (int i = 1; i <= n; ++i)
-            entries.push_back({i, i}); /* diagonal */
+            entries.push_back({i, i});
         for (int i = 1; i <= n; ++i)
             for (int j = 1; j <= n; ++j)
                 if (i != j) {
@@ -65,7 +222,6 @@ static SparseCOO gen_sparse_matrix(int n, double density, int sym,
                         entries.push_back({i, j});
                 }
     } else {
-        /* Symmetric (SPD or general): store lower triangle + diagonal */
         for (int i = 1; i <= n; ++i)
             entries.push_back({i, i});
         for (int i = 2; i <= n; ++i)
@@ -85,8 +241,6 @@ static SparseCOO gen_sparse_matrix(int n, double density, int sym,
 
     mpfr_t val;
     mpfr_init2(val, prec);
-
-    /* Count off-diagonal entries per row (for diagonal dominance) */
     std::vector<double> row_sum(n + 1, 0.0);
 
     char *vp = static_cast<char *>(coo.vals);
@@ -95,13 +249,11 @@ static SparseCOO gen_sparse_matrix(int n, double density, int sym,
         coo.jcn[k] = entries[k].second;
 
         if (coo.irn[k] == coo.jcn[k]) {
-            /* Diagonal: fill later for SPD */
             if (sym == 1) {
-                mpfr_set_d(val, 0.0, MPFR_RNDN); /* placeholder */
+                mpfr_set_d(val, 0.0, MPFR_RNDN);
             } else {
                 double d = static_cast<double>(rand_r(seed)) /
                            static_cast<double>(RAND_MAX) * 2.0 - 1.0;
-                /* Make diagonal dominant for general matrices too */
                 d += (d >= 0) ? static_cast<double>(n) : -static_cast<double>(n);
                 mpfr_set_d(val, d, MPFR_RNDN);
             }
@@ -109,16 +261,13 @@ static SparseCOO gen_sparse_matrix(int n, double density, int sym,
             double d = static_cast<double>(rand_r(seed)) /
                        static_cast<double>(RAND_MAX) * 2.0 - 1.0;
             mpfr_set_d(val, d, MPFR_RNDN);
-
             double absd = (d >= 0) ? d : -d;
             row_sum[coo.irn[k]] += absd;
-            if (sym != 0) /* symmetric: also affects the transposed row */
-                row_sum[coo.jcn[k]] += absd;
+            if (sym != 0) row_sum[coo.jcn[k]] += absd;
         }
         from_mpfr(vp + static_cast<std::size_t>(k) * typesize, val, MPFR_RNDN);
     }
 
-    /* For SPD: set diagonal = sum of absolute off-diag + small offset */
     if (sym == 1) {
         for (int k = 0; k < coo.nnz; ++k) {
             if (coo.irn[k] == coo.jcn[k]) {
@@ -135,9 +284,7 @@ static SparseCOO gen_sparse_matrix(int n, double density, int sym,
 }
 
 /* ------------------------------------------------------------------ */
-/* Compute b = A*x using MPFR (for generating the RHS)                  */
-/* For symmetric storage (sym!=0), entries (i,j) with i!=j contribute  */
-/* to both row i and row j.                                             */
+/* Compute b = A*x using MPFR                                          */
 /* ------------------------------------------------------------------ */
 
 static void *compute_rhs(const SparseCOO &coo, const void *x, int sym,
@@ -147,8 +294,6 @@ static void *compute_rhs(const SparseCOO &coo, const void *x, int sym,
                           mpfr_prec_t prec)
 {
     int n = coo.n;
-
-    /* Convert x to MPFR */
     auto *x_mpfr = new mpfr_t[n];
     auto *b_mpfr = new mpfr_t[n];
     for (int i = 0; i < n; ++i) {
@@ -161,7 +306,6 @@ static void *compute_rhs(const SparseCOO &coo, const void *x, int sym,
     for (int i = 0; i < n; ++i)
         to_mpfr(x_mpfr[i], xp + static_cast<std::size_t>(i) * typesize);
 
-    /* SpMV: b = A*x */
     mpfr_t av, prod;
     mpfr_init2(av, prec);
     mpfr_init2(prod, prec);
@@ -171,18 +315,14 @@ static void *compute_rhs(const SparseCOO &coo, const void *x, int sym,
         int i = coo.irn[k] - 1;
         int j = coo.jcn[k] - 1;
         to_mpfr(av, vp + static_cast<std::size_t>(k) * typesize);
-
         mpfr_mul(prod, av, x_mpfr[j], MPFR_RNDN);
         mpfr_add(b_mpfr[i], b_mpfr[i], prod, MPFR_RNDN);
-
         if (sym != 0 && i != j) {
-            /* Symmetric: a(i,j) also means a(j,i) */
             mpfr_mul(prod, av, x_mpfr[i], MPFR_RNDN);
             mpfr_add(b_mpfr[j], b_mpfr[j], prod, MPFR_RNDN);
         }
     }
 
-    /* Convert b back to custom type */
     void *b = std::malloc(static_cast<std::size_t>(n) * typesize);
     if (!b) { std::perror("malloc"); std::exit(EXIT_FAILURE); }
     char *bp = static_cast<char *>(b);
@@ -197,7 +337,6 @@ static void *compute_rhs(const SparseCOO &coo, const void *x, int sym,
     }
     delete[] x_mpfr;
     delete[] b_mpfr;
-
     return b;
 }
 
@@ -209,12 +348,9 @@ static SparseCOO expand_symmetric(const SparseCOO &lower, std::size_t typesize)
 {
     SparseCOO full;
     full.n = lower.n;
-
-    /* Count: diag entries once, off-diag twice */
     int extra = 0;
     for (int k = 0; k < lower.nnz; ++k)
-        if (lower.irn[k] != lower.jcn[k])
-            ++extra;
+        if (lower.irn[k] != lower.jcn[k]) ++extra;
 
     full.nnz = lower.nnz + extra;
     full.irn.resize(full.nnz);
@@ -225,14 +361,12 @@ static SparseCOO expand_symmetric(const SparseCOO &lower, std::size_t typesize)
     const char *lv = static_cast<const char *>(lower.vals);
     char *fv = static_cast<char *>(full.vals);
     int idx = 0;
-
     for (int k = 0; k < lower.nnz; ++k) {
         full.irn[idx] = lower.irn[k];
         full.jcn[idx] = lower.jcn[k];
         std::memcpy(fv + static_cast<std::size_t>(idx) * typesize,
                     lv + static_cast<std::size_t>(k) * typesize, typesize);
         ++idx;
-
         if (lower.irn[k] != lower.jcn[k]) {
             full.irn[idx] = lower.jcn[k];
             full.jcn[idx] = lower.irn[k];
@@ -241,13 +375,15 @@ static SparseCOO expand_symmetric(const SparseCOO &lower, std::size_t typesize)
             ++idx;
         }
     }
-
     return full;
 }
 
 /* ------------------------------------------------------------------ */
 /* main                                                                 */
 /* ------------------------------------------------------------------ */
+
+/* The MUMPS entry point (e.g. dmumps_c) takes a pointer to its struct. */
+extern "C" typedef void (*mumps_c_fn)(void *);
 
 int main(int argc, char **argv)
 {
@@ -257,24 +393,45 @@ int main(int argc, char **argv)
     std::string lib_path, mumps_sym = "dmumps_c", conv_lib_path;
     std::vector<std::string> preloads;
     std::size_t typesize = 0;
+    std::size_t real_align = 0;
     int n = 64;
     int sym = 0;
     double density = 0.1;
     unsigned seed = 42;
     mpfr_prec_t prec = 256;
 
-    app.add_option("--lib",       lib_path,      "MUMPS shared library (e.g. libdmumps_seq.so)")->required();
-    app.add_option("--mumps-sym", mumps_sym,     "Symbol name for MUMPS entry point (default: dmumps_c)");
-    app.add_option("--conv-lib",  conv_lib_path, "Library exporting custom_to_mpfr/mpfr_to_custom")->required();
-    app.add_option("--typesize",  typesize,      "sizeof of the custom scalar type")->required();
-    app.add_option("--preload",   preloads,      "Libraries to preload (may be specified multiple times)");
-    app.add_option("--n",         n,             "Matrix dimension (default 64)");
-    app.add_option("--sym",       sym,           "Symmetry: 0=unsym, 1=SPD, 2=general symmetric (default 0)");
-    app.add_option("--density",   density,       "Sparsity density for off-diag (default 0.1)");
-    app.add_option("--seed",      seed,          "Random seed (default 42)");
-    app.add_option("--prec",      prec,          "MPFR working precision in bits (default 256)");
+    app.add_option("--lib",        lib_path,      "MUMPS shared library (e.g. libdmumps_seq.so)")->required();
+    app.add_option("--mumps-sym",  mumps_sym,     "Symbol name for MUMPS entry point (default: dmumps_c)");
+    app.add_option("--conv-lib",   conv_lib_path, "Library exporting custom_to_mpfr/mpfr_to_custom")->required();
+    app.add_option("--typesize",   typesize,       "sizeof of the custom scalar type")->required();
+    app.add_option("--real-align", real_align,     "Alignment of the real type (default: min(typesize,8))");
+    app.add_option("--preload",    preloads,       "Libraries to preload (may be specified multiple times)");
+    app.add_option("--n",          n,              "Matrix dimension (default 64)");
+    app.add_option("--sym",        sym,            "Symmetry: 0=unsym, 1=SPD, 2=general symmetric (default 0)");
+    app.add_option("--density",    density,        "Sparsity density for off-diag (default 0.1)");
+    app.add_option("--seed",       seed,           "Random seed (default 42)");
+    app.add_option("--prec",       prec,           "MPFR working precision in bits (default 256)");
 
     CLI11_PARSE(app, argc, argv);
+
+    /* Default real_align: min(typesize, 8), rounded down to power of 2 */
+    if (real_align == 0) {
+        real_align = 1;
+        while (real_align * 2 <= typesize && real_align * 2 <= 8)
+            real_align *= 2;
+    }
+
+    /* Compute struct layout */
+    MumpsOffsets F = compute_mumps_layout(typesize, real_align);
+
+    /* Sanity-check against DMUMPS_STRUC_C when running standard double */
+    if (typesize == sizeof(double) && real_align == alignof(double)) {
+        if (!verify_layout_double(F)) {
+            std::fprintf(stderr, "FATAL: computed layout does not match "
+                         "DMUMPS_STRUC_C — struct definition may be stale.\n");
+            return EXIT_FAILURE;
+        }
+    }
 
     /* Preload dependencies */
     auto preload_handles = preload_libs(preloads);
@@ -292,7 +449,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    auto *mumps_fn = reinterpret_cast<dmumps_c_fn>(
+    auto *mumps_fn = reinterpret_cast<mumps_c_fn>(
                          load_sym(mumps_lib, mumps_sym.c_str()));
     auto *to_mpfr  = reinterpret_cast<custom_to_mpfr_fn>(
                          load_sym(conv_lib, "custom_to_mpfr"));
@@ -305,7 +462,7 @@ int main(int argc, char **argv)
     std::printf("=== MUMPS test: n=%d, sym=%d (%s), density=%.2f ===\n",
                 n, sym, sym_names[sym], density);
 
-    /* Generate sparse matrix in custom type */
+    /* Generate sparse matrix and known solution in custom type */
     unsigned seed_mat = seed;
     SparseCOO coo = gen_sparse_matrix(n, density, sym, typesize,
                                        from_mpfr, prec, &seed_mat);
@@ -313,139 +470,97 @@ int main(int argc, char **argv)
                 coo.n, coo.nnz,
                 static_cast<double>(coo.nnz) / (static_cast<double>(n) * n));
 
-    /* Generate known solution x, compute b = A*x in MPFR */
     unsigned seed_x = seed + 100;
     void *x_true = gen_random_array(n, typesize, from_mpfr, prec, &seed_x);
     void *b = compute_rhs(coo, x_true, sym, typesize, to_mpfr, from_mpfr, prec);
 
-    /* Convert custom-type COO values and RHS to double for MUMPS,
-     * going through the conv-lib: custom → mpfr → double */
-    double *a_dbl = static_cast<double *>(
-        std::malloc(static_cast<std::size_t>(coo.nnz) * sizeof(double)));
-    double *rhs_dbl = static_cast<double *>(
-        std::malloc(static_cast<std::size_t>(n) * sizeof(double)));
-    if (!a_dbl || !rhs_dbl) { std::perror("malloc"); return EXIT_FAILURE; }
+    /* rhs buffer — MUMPS overwrites it with the solution */
+    void *rhs = std::malloc(static_cast<std::size_t>(n) * typesize);
+    if (!rhs) { std::perror("malloc"); return EXIT_FAILURE; }
+    std::memcpy(rhs, b, static_cast<std::size_t>(n) * typesize);
 
-    {
-        mpfr_t tmp;
-        mpfr_init2(tmp, prec);
+    /* --- Drive MUMPS via byte-level struct access --- */
+    char *id = static_cast<char *>(std::calloc(1, F.total));
+    if (!id) { std::perror("calloc"); return EXIT_FAILURE; }
 
-        const char *vp = static_cast<const char *>(coo.vals);
-        for (int i = 0; i < coo.nnz; ++i) {
-            to_mpfr(tmp, vp + static_cast<std::size_t>(i) * typesize);
-            a_dbl[i] = mpfr_get_d(tmp, MPFR_RNDN);
-        }
+    /* Phase 1: Initialise instance */
+    wr_int(id, F.par, 1);
+    wr_int(id, F.sym, sym);
+    wr_int(id, F.comm_fortran, -987654);   /* MUMPS_USE_COMM_WORLD (seq) */
+    wr_int(id, F.job, -1);
+    mumps_fn(id);
 
-        const char *bp = static_cast<const char *>(b);
-        for (int i = 0; i < n; ++i) {
-            to_mpfr(tmp, bp + static_cast<std::size_t>(i) * typesize);
-            rhs_dbl[i] = mpfr_get_d(tmp, MPFR_RNDN);
-        }
-
-        mpfr_clear(tmp);
-    }
-
-    /* --- MUMPS solve via DMUMPS_STRUC_C --- */
-    DMUMPS_STRUC_C id;
-    std::memset(&id, 0, sizeof(id));
-
-    /* Phase 1: Initialise */
-    id.par = 1;                  /* host participates */
-    id.sym = sym;                /* 0=unsym, 1=SPD, 2=general sym */
-    id.comm_fortran = -987654;   /* use MPI_COMM_WORLD (MUMPS seq convention) */
-    id.job = -1;
-    mumps_fn(&id);
-    if (id.infog[0] < 0) {
+    if (rd_int(id, F.infog) < 0) {
         std::fprintf(stderr, "MUMPS init failed: INFOG(1)=%d, INFOG(2)=%d\n",
-                     id.infog[0], id.infog[1]);
-        std::free(a_dbl); std::free(rhs_dbl);
-        std::free(x_true); std::free(b); std::free(coo.vals);
-        dlclose(conv_lib); dlclose(mumps_lib);
-        close_libs(preload_handles);
-        return EXIT_FAILURE;
+                     rd_int(id, F.infog), rd_int(id, F.infog + 4));
+        std::free(id);
+        goto cleanup;
     }
 
-    /* Suppress MUMPS output */
-    id.icntl[0] = -1;   /* stream for errors   */
-    id.icntl[1] = -1;   /* stream for warnings  */
-    id.icntl[2] = -1;   /* stream for info      */
-    id.icntl[3] = 0;    /* print level          */
+    /* Suppress MUMPS stdout */
+    wr_int(id, F.icntl + 0 * 4, -1);   /* error stream   */
+    wr_int(id, F.icntl + 1 * 4, -1);   /* warning stream  */
+    wr_int(id, F.icntl + 2 * 4, -1);   /* info stream     */
+    wr_int(id, F.icntl + 3 * 4,  0);   /* print level     */
 
-    /* Set assembled matrix (centralized on host) */
-    id.n   = n;
-    id.nnz = static_cast<MUMPS_INT8>(coo.nnz);
-    id.irn = coo.irn.data();
-    id.jcn = coo.jcn.data();
-    id.a   = a_dbl;
+    /* Set assembled matrix — pass custom-type array directly */
+    wr_int(id, F.n, n);
+    wr_int(id, F.nz, coo.nnz);
+    wr_i64(id, F.nnz, static_cast<int64_t>(coo.nnz));
+    wr_ptr(id, F.irn, coo.irn.data());
+    wr_ptr(id, F.jcn, coo.jcn.data());
+    wr_ptr(id, F.a,   coo.vals);
 
-    /* Set RHS */
-    id.nrhs = 1;
-    id.lrhs = n;
-    id.rhs  = rhs_dbl;
+    /* Set RHS — pass custom-type array directly */
+    wr_int(id, F.nrhs, 1);
+    wr_int(id, F.lrhs, n);
+    wr_ptr(id, F.rhs,  rhs);
 
     /* Phase 2: Analyse + Factorise + Solve */
-    id.job = 6;
-    mumps_fn(&id);
-    int rc = id.infog[0];
+    wr_int(id, F.job, 6);
+    mumps_fn(id);
 
-    if (rc < 0) {
-        std::fprintf(stderr, "MUMPS solve failed: INFOG(1)=%d, INFOG(2)=%d\n",
-                     id.infog[0], id.infog[1]);
-    }
-
-    /* Phase 3: Cleanup */
-    id.job = -2;
-    mumps_fn(&id);
-
-    if (rc < 0) {
-        std::free(a_dbl); std::free(rhs_dbl);
-        std::free(x_true); std::free(b); std::free(coo.vals);
-        dlclose(conv_lib); dlclose(mumps_lib);
-        close_libs(preload_handles);
-        return EXIT_FAILURE;
-    }
-
-    /* Convert double solution back to custom type for residual check:
-     * double → mpfr → custom via conv-lib */
-    void *rhs_custom = std::malloc(static_cast<std::size_t>(n) * typesize);
-    if (!rhs_custom) { std::perror("malloc"); return EXIT_FAILURE; }
     {
-        mpfr_t tmp;
-        mpfr_init2(tmp, prec);
+        int rc = rd_int(id, F.infog);
+        if (rc < 0)
+            std::fprintf(stderr, "MUMPS solve failed: INFOG(1)=%d, INFOG(2)=%d\n",
+                         rc, rd_int(id, F.infog + 4));
 
-        char *rp = static_cast<char *>(rhs_custom);
-        for (int i = 0; i < n; ++i) {
-            mpfr_set_d(tmp, rhs_dbl[i], MPFR_RNDN);
-            from_mpfr(rp + static_cast<std::size_t>(i) * typesize, tmp, MPFR_RNDN);
+        /* Phase 3: Destroy instance */
+        wr_int(id, F.job, -2);
+        mumps_fn(id);
+        std::free(id);
+        id = nullptr;
+
+        if (rc < 0) goto cleanup;
+    }
+
+    /* rhs now contains the solution in custom type.
+     * Compute residual ||b - A*x_solved|| / ||b|| in MPFR. */
+    {
+        ResidualResult res;
+        if (sym != 0) {
+            SparseCOO full = expand_symmetric(coo, typesize);
+            res = reference_sparse_residual(ctx, n, full.nnz,
+                                             full.irn.data(), full.jcn.data(),
+                                             full.vals, b, rhs);
+            std::free(full.vals);
+        } else {
+            res = reference_sparse_residual(ctx, n, coo.nnz,
+                                             coo.irn.data(), coo.jcn.data(),
+                                             coo.vals, b, rhs);
         }
 
-        mpfr_clear(tmp);
+        std::printf("  ||b-Ax||_1   / ||b||_1   = %.6e\n", res.l1);
+        std::printf("  ||b-Ax||_2   / ||b||_2   = %.6e\n", res.l2);
+        std::printf("  ||b-Ax||_inf / ||b||_inf = %.6e\n", res.linf);
     }
 
-    /* Compute residual.  For symmetric storage we need full COO for
-     * the residual computation (reference_sparse_residual uses plain SpMV). */
-    ResidualResult res;
-    if (sym != 0) {
-        SparseCOO full = expand_symmetric(coo, typesize);
-        res = reference_sparse_residual(ctx, n, full.nnz,
-                                         full.irn.data(), full.jcn.data(),
-                                         full.vals, b, rhs_custom);
-        std::free(full.vals);
-    } else {
-        res = reference_sparse_residual(ctx, n, coo.nnz,
-                                         coo.irn.data(), coo.jcn.data(),
-                                         coo.vals, b, rhs_custom);
-    }
-
-    std::printf("  ||b-Ax||_1   / ||b||_1   = %.6e\n", res.l1);
-    std::printf("  ||b-Ax||_2   / ||b||_2   = %.6e\n", res.l2);
-    std::printf("  ||b-Ax||_inf / ||b||_inf = %.6e\n", res.linf);
-
-    std::free(rhs_custom);
-    std::free(a_dbl);
-    std::free(rhs_dbl);
+cleanup:
+    std::free(id);
     std::free(x_true);
     std::free(b);
+    std::free(rhs);
     std::free(coo.vals);
     dlclose(conv_lib);
     dlclose(mumps_lib);
