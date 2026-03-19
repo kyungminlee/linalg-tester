@@ -82,6 +82,27 @@ gcc -O2 -shared -fPIC -o "${CONV_LIB}" "${CONV_SRC}" -lmpfr
 echo "  -> ${CONV_LIB}"
 
 # ---------------------------------------------------------------------------
+# Provide libgfortran.so.5 stubs when the real library is not installed.
+# OpenBLAS has a hard NEEDED entry for libgfortran.so.5 in its ELF header;
+# the dynamic linker must open the file (not just resolve symbols) before
+# dlopen() can succeed.  We satisfy this by compiling the stub source into
+# a file named libgfortran.so.5 and prepending its directory to
+# LD_LIBRARY_PATH so the linker finds it before the system library path.
+# ---------------------------------------------------------------------------
+STUBS_SRC="${SCRIPT_DIR}/gfortran_stubs.c"
+STUBS_DIR="${SCRIPT_DIR}/stubs"
+STUBS_LIB="${STUBS_DIR}/libgfortran.so.5"
+
+if ! ldconfig -p 2>/dev/null | grep -q "libgfortran\.so\.5"; then
+    echo "libgfortran.so.5 not found — building stub library..."
+    mkdir -p "${STUBS_DIR}"
+    gcc -O0 -shared -fPIC -Wl,-soname,libgfortran.so.5 \
+        -o "${STUBS_LIB}" "${STUBS_SRC}"
+    echo "  -> ${STUBS_LIB}"
+    export LD_LIBRARY_PATH="${STUBS_DIR}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+fi
+
+# ---------------------------------------------------------------------------
 # Locate tester binaries
 # ---------------------------------------------------------------------------
 GEMM_TESTER="${REPO_ROOT}/gemm_tester"
