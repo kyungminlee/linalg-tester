@@ -1,3 +1,4 @@
 gemm_tester
 trsm_tester
 src/*.o
+examples/**/*.so
