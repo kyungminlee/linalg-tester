@@ -83,10 +83,12 @@ void mpfr_to_custom(void *dst, mpfr_t src, mpfr_rnd_t rnd);
 
 ### mumps_tester
 
-The sparse solver tester uses a similar interface:
+The MUMPS tester calls `dmumps_c()` directly through `DMUMPS_STRUC_C`,
+loaded at runtime via `dlopen`/`dlsym`. No wrapper library is needed — just
+point at the MUMPS shared library.
 
-- `--lib <path>` — shared library containing the solver
-- `--solve-sym <name>` — symbol name (e.g. `sparse_solve`)
+- `--lib <path>` — MUMPS shared library (e.g. `libdmumps_seq.so`)
+- `--mumps-sym <name>` — MUMPS entry point symbol (default: `dmumps_c`)
 - `--conv-lib <path>` — conversion library (same as above)
 - `--typesize <n>` — `sizeof` of the scalar type
 - `--preload <path>` — additional libraries to open first (repeatable)
@@ -96,15 +98,9 @@ The sparse solver tester uses a similar interface:
 - `--seed <n>` — random seed (default 42)
 - `--prec <bits>` — MPFR working precision (default 256)
 
-The solver library must export a function matching this signature:
-
-```c
-// Solve Ax = rhs in-place.  irn/jcn are 1-based COO indices.
-// For sym != 0, only the lower triangle is stored.
-// Returns 0 on success.
-int sparse_solve(int n, int nnz, int *irn, int *jcn,
-                 void *a, void *rhs, int sym);
-```
+The tester bundles `DMUMPS_STRUC_C` from MUMPS 5.6.2. If your MUMPS version
+differs, replace `src/dmumps_struc.h` with `#include <dmumps_c.h>` from your
+installation.
 
 ## Examples
 
@@ -220,16 +216,16 @@ cd examples/reference_blas
 
 All normwise errors are within a few ULPs of machine epsilon (≈ 2.2×10⁻¹⁶).
 
-### Sparse solver (LAPACK dgesv\_) — double precision
+### MUMPS (sequential) — double precision
 
-The `examples/reference_mumps/` directory tests a sparse solver wrapper that
-converts a COO sparse matrix to dense and solves with LAPACK `dgesv_`.  This
-validates the `mumps_tester` pipeline without requiring a MUMPS installation.
+The `examples/reference_mumps/` directory tests the MUMPS sparse direct solver
+(`dmumps_c` via `DMUMPS_STRUC_C`) shipped in the Ubuntu/Debian `libmumps-seq-dev`
+package.  The tester calls `dmumps_c()` directly — no wrapper library needed.
 
 **Prerequisites**
 
 ```sh
-apt install libblas3 liblapack3 libmpfr-dev libgmp-dev
+apt install libmumps-seq-dev libmpfr-dev libgmp-dev
 mkdir -p build && cd build && cmake .. && make
 ```
 
@@ -238,39 +234,36 @@ mkdir -p build && cd build && cmake .. && make
 ```sh
 cd examples/reference_mumps
 ./run_test.sh
-# or with a custom solver:
-./run_test.sh --solver /path/to/my_solver.so
+# or with an explicit MUMPS library path:
+./run_test.sh --mumps /usr/lib/x86_64-linux-gnu/libdmumps_seq.so
 ```
 
 The script:
 1. Compiles `double_conv.so` (the `double` ↔ MPFR conversion library).
-2. Compiles `lapack_solve.so` (thin `dgesv_` wrapper exporting `sparse_solve`).
-3. Runs `mumps_tester` for unsymmetric, SPD, and general symmetric matrices.
+2. Runs `mumps_tester` for unsymmetric, SPD, and general symmetric matrices,
+   calling `dmumps_c()` directly through `DMUMPS_STRUC_C`.
 
-**Sample output** (LAPACK 3.12.0 / Netlib BLAS 3.12.0, n=64, seed=42, prec=256 bits):
+**Sample output** (MUMPS 5.6.2 sequential, n=64, seed=42, prec=256 bits):
 
 ```
-=== Sparse solver test: unsymmetric, n=64, density=0.1 ===
-=== Sparse solver test: n=64, sym=0 (unsymmetric), density=0.10 ===
+=== MUMPS test: n=64, sym=0 (unsymmetric), density=0.10 ===
   Matrix: n=64, nnz=465 (stored), density=0.1135
-  ||b-Ax||_1   / ||b||_1   = 2.326664e-16
-  ||b-Ax||_2   / ||b||_2   = 2.979754e-16
-  ||b-Ax||_inf / ||b||_inf = 5.685390e-16
+  ||b-Ax||_1   / ||b||_1   = 3.280201e-16
+  ||b-Ax||_2   / ||b||_2   = 4.203938e-16
+  ||b-Ax||_inf / ||b||_inf = 8.990510e-16
 
-=== Sparse solver test: SPD, n=64, density=0.15 ===
-=== Sparse solver test: n=64, sym=1 (SPD), density=0.15 ===
+=== MUMPS test: n=64, sym=1 (SPD), density=0.15 ===
   Matrix: n=64, nnz=360 (stored), density=0.0879
-  ||b-Ax||_1   / ||b||_1   = 2.839070e-16
-  ||b-Ax||_2   / ||b||_2   = 3.316017e-16
-  ||b-Ax||_inf / ||b||_inf = 4.350538e-16
+  ||b-Ax||_1   / ||b||_1   = 2.978200e-16
+  ||b-Ax||_2   / ||b||_2   = 3.506684e-16
+  ||b-Ax||_inf / ||b||_inf = 4.631551e-16
 
-=== Sparse solver test: general symmetric, n=64, density=0.1 ===
-=== Sparse solver test: n=64, sym=2 (general symmetric), density=0.10 ===
+=== MUMPS test: n=64, sym=2 (general symmetric), density=0.10 ===
   Matrix: n=64, nnz=257 (stored), density=0.0627
-  ||b-Ax||_1   / ||b||_1   = 2.521935e-16
-  ||b-Ax||_2   / ||b||_2   = 3.219582e-16
-  ||b-Ax||_inf / ||b||_inf = 5.904727e-16
+  ||b-Ax||_1   / ||b||_1   = 2.201930e-16
+  ||b-Ax||_2   / ||b||_2   = 2.655834e-16
+  ||b-Ax||_inf / ||b||_inf = 4.862170e-16
 ```
 
 All residual norms are within a few ULPs of machine epsilon (≈ 2.2×10⁻¹⁶),
-confirming that the solver and tester pipeline are numerically correct.
+confirming that MUMPS double-precision sparse solver is numerically correct.

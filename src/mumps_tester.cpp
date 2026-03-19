@@ -1,15 +1,17 @@
-/* mumps_tester: tests a sparse direct solver (MUMPS-style) by checking
+/* mumps_tester: tests the MUMPS sparse direct solver by checking
  * residual norms ||b - Ax|| / ||b|| in L1, L2, and Linf.
  *
- * The solver library must export a function with this signature:
- *   int sparse_solve(int n, int nnz, int *irn, int *jcn,
- *                    void *a, void *rhs, int sym);
- * where irn/jcn are 1-based COO indices, rhs is overwritten with the
- * solution, and sym is 0 (unsym), 1 (SPD), or 2 (general symmetric).
+ * Calls dmumps_c() (or the user-specified symbol) directly through
+ * DMUMPS_STRUC_C, loaded at runtime via dlopen/dlsym.
+ *
+ * Usage:
+ *   mumps_tester --lib <libdmumps.so> --conv-lib <double_conv.so> \
+ *                --typesize 8 --n 64 --sym 0 --density 0.1
  */
 
 #include "reference.h"
 #include "tester_utils.h"
+#include "dmumps_struc.h"
 
 #include "../third_party/CLI11.hpp"
 
@@ -244,6 +246,50 @@ static SparseCOO expand_symmetric(const SparseCOO &lower, std::size_t typesize)
 }
 
 /* ------------------------------------------------------------------ */
+/* Extract double* array from custom-type array via conv-lib             */
+/* ------------------------------------------------------------------ */
+
+static double *custom_to_double_array(const void *src, int count,
+                                       std::size_t typesize,
+                                       custom_to_mpfr_fn to_mpfr,
+                                       mpfr_prec_t prec)
+{
+    double *out = static_cast<double *>(std::malloc(
+        static_cast<std::size_t>(count) * sizeof(double)));
+    if (!out) { std::perror("malloc"); std::exit(EXIT_FAILURE); }
+
+    mpfr_t tmp;
+    mpfr_init2(tmp, prec);
+
+    const char *p = static_cast<const char *>(src);
+    for (int i = 0; i < count; ++i) {
+        to_mpfr(tmp, p + static_cast<std::size_t>(i) * typesize);
+        out[i] = mpfr_get_d(tmp, MPFR_RNDN);
+    }
+
+    mpfr_clear(tmp);
+    return out;
+}
+
+/* Convert double* array back to custom-type array */
+static void double_to_custom_array(void *dst, const double *src, int count,
+                                    std::size_t typesize,
+                                    mpfr_to_custom_fn from_mpfr,
+                                    mpfr_prec_t prec)
+{
+    mpfr_t tmp;
+    mpfr_init2(tmp, prec);
+
+    char *p = static_cast<char *>(dst);
+    for (int i = 0; i < count; ++i) {
+        mpfr_set_d(tmp, src[i], MPFR_RNDN);
+        from_mpfr(p + static_cast<std::size_t>(i) * typesize, tmp, MPFR_RNDN);
+    }
+
+    mpfr_clear(tmp);
+}
+
+/* ------------------------------------------------------------------ */
 /* main                                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -252,7 +298,7 @@ int main(int argc, char **argv)
     CLI::App app{"MUMPS sparse solver tester — checks residual norms "
                  "||b-Ax||/||b|| in L1, L2, Linf"};
 
-    std::string lib_path, solve_sym, conv_lib_path;
+    std::string lib_path, mumps_sym = "dmumps_c", conv_lib_path;
     std::vector<std::string> preloads;
     std::size_t typesize = 0;
     int n = 64;
@@ -261,8 +307,8 @@ int main(int argc, char **argv)
     unsigned seed = 42;
     mpfr_prec_t prec = 256;
 
-    app.add_option("--lib",       lib_path,      "Shared library with sparse_solve")->required();
-    app.add_option("--solve-sym", solve_sym,     "Symbol name for solver (e.g. sparse_solve)")->required();
+    app.add_option("--lib",       lib_path,      "MUMPS shared library (e.g. libdmumps_seq.so)")->required();
+    app.add_option("--mumps-sym", mumps_sym,     "Symbol name for MUMPS entry point (default: dmumps_c)");
     app.add_option("--conv-lib",  conv_lib_path, "Library exporting custom_to_mpfr/mpfr_to_custom")->required();
     app.add_option("--typesize",  typesize,      "sizeof of the custom scalar type")->required();
     app.add_option("--preload",   preloads,      "Libraries to preload (may be specified multiple times)");
@@ -277,21 +323,21 @@ int main(int argc, char **argv)
     /* Preload dependencies */
     auto preload_handles = preload_libs(preloads);
 
-    /* Load solver and conversion libraries */
-    void *solver_lib = dlopen(lib_path.c_str(), RTLD_NOW | RTLD_LOCAL);
-    if (!solver_lib) {
+    /* Load MUMPS library and conversion library */
+    void *mumps_lib = dlopen(lib_path.c_str(), RTLD_NOW | RTLD_GLOBAL);
+    if (!mumps_lib) {
         std::fprintf(stderr, "dlopen(%s): %s\n", lib_path.c_str(), dlerror());
         return EXIT_FAILURE;
     }
     void *conv_lib = dlopen(conv_lib_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!conv_lib) {
         std::fprintf(stderr, "dlopen(%s): %s\n", conv_lib_path.c_str(), dlerror());
-        dlclose(solver_lib);
+        dlclose(mumps_lib);
         return EXIT_FAILURE;
     }
 
-    auto *solve_fn = reinterpret_cast<sparse_solve_fn>(
-                         load_sym(solver_lib, solve_sym.c_str()));
+    auto *mumps_fn = reinterpret_cast<dmumps_c_fn>(
+                         load_sym(mumps_lib, mumps_sym.c_str()));
     auto *to_mpfr  = reinterpret_cast<custom_to_mpfr_fn>(
                          load_sym(conv_lib, "custom_to_mpfr"));
     auto *from_mpfr= reinterpret_cast<mpfr_to_custom_fn>(
@@ -300,10 +346,10 @@ int main(int argc, char **argv)
     TesterCtx ctx{ prec, typesize, to_mpfr, from_mpfr };
 
     const char *sym_names[] = {"unsymmetric", "SPD", "general symmetric"};
-    std::printf("=== Sparse solver test: n=%d, sym=%d (%s), density=%.2f ===\n",
+    std::printf("=== MUMPS test: n=%d, sym=%d (%s), density=%.2f ===\n",
                 n, sym, sym_names[sym], density);
 
-    /* Generate sparse matrix */
+    /* Generate sparse matrix in custom type */
     unsigned seed_mat = seed;
     SparseCOO coo = gen_sparse_matrix(n, density, sym, typesize,
                                        from_mpfr, prec, &seed_mat);
@@ -311,28 +357,79 @@ int main(int argc, char **argv)
                 coo.n, coo.nnz,
                 static_cast<double>(coo.nnz) / (static_cast<double>(n) * n));
 
-    /* Generate known solution x */
+    /* Generate known solution x, compute b = A*x in MPFR */
     unsigned seed_x = seed + 100;
     void *x_true = gen_random_array(n, typesize, from_mpfr, prec, &seed_x);
-
-    /* Compute b = A*x using MPFR */
     void *b = compute_rhs(coo, x_true, sym, typesize, to_mpfr, from_mpfr, prec);
 
-    /* Copy b into rhs (solver overwrites it) */
-    void *rhs = std::malloc(static_cast<std::size_t>(n) * typesize);
-    if (!rhs) { std::perror("malloc"); return EXIT_FAILURE; }
-    std::memcpy(rhs, b, static_cast<std::size_t>(n) * typesize);
+    /* Convert COO values and RHS to double arrays for MUMPS */
+    double *a_dbl   = custom_to_double_array(coo.vals, coo.nnz, typesize, to_mpfr, prec);
+    double *rhs_dbl = custom_to_double_array(b, n, typesize, to_mpfr, prec);
 
-    /* Call the solver */
-    int rc = solve_fn(n, coo.nnz, coo.irn.data(), coo.jcn.data(),
-                      coo.vals, rhs, sym);
-    if (rc != 0) {
-        std::fprintf(stderr, "Solver returned error code %d\n", rc);
-        std::free(x_true); std::free(b); std::free(rhs); std::free(coo.vals);
-        dlclose(conv_lib); dlclose(solver_lib);
+    /* --- MUMPS solve via DMUMPS_STRUC_C --- */
+    DMUMPS_STRUC_C id;
+    std::memset(&id, 0, sizeof(id));
+
+    /* Phase 1: Initialise */
+    id.par = 1;                  /* host participates */
+    id.sym = sym;                /* 0=unsym, 1=SPD, 2=general sym */
+    id.comm_fortran = -987654;   /* use MPI_COMM_WORLD (MUMPS seq convention) */
+    id.job = -1;
+    mumps_fn(&id);
+    if (id.infog[0] < 0) {
+        std::fprintf(stderr, "MUMPS init failed: INFOG(1)=%d, INFOG(2)=%d\n",
+                     id.infog[0], id.infog[1]);
+        std::free(a_dbl); std::free(rhs_dbl);
+        std::free(x_true); std::free(b); std::free(coo.vals);
+        dlclose(conv_lib); dlclose(mumps_lib);
         close_libs(preload_handles);
         return EXIT_FAILURE;
     }
+
+    /* Suppress MUMPS output */
+    id.icntl[0] = -1;   /* stream for errors   */
+    id.icntl[1] = -1;   /* stream for warnings  */
+    id.icntl[2] = -1;   /* stream for info      */
+    id.icntl[3] = 0;    /* print level          */
+
+    /* Set assembled matrix (centralized on host) */
+    id.n   = n;
+    id.nnz = static_cast<MUMPS_INT8>(coo.nnz);
+    id.irn = coo.irn.data();
+    id.jcn = coo.jcn.data();
+    id.a   = a_dbl;
+
+    /* Set RHS */
+    id.nrhs = 1;
+    id.lrhs = n;
+    id.rhs  = rhs_dbl;
+
+    /* Phase 2: Analyse + Factorise + Solve */
+    id.job = 6;
+    mumps_fn(&id);
+    int rc = id.infog[0];
+
+    if (rc < 0) {
+        std::fprintf(stderr, "MUMPS solve failed: INFOG(1)=%d, INFOG(2)=%d\n",
+                     id.infog[0], id.infog[1]);
+    }
+
+    /* Phase 3: Cleanup */
+    id.job = -2;
+    mumps_fn(&id);
+
+    if (rc < 0) {
+        std::free(a_dbl); std::free(rhs_dbl);
+        std::free(x_true); std::free(b); std::free(coo.vals);
+        dlclose(conv_lib); dlclose(mumps_lib);
+        close_libs(preload_handles);
+        return EXIT_FAILURE;
+    }
+
+    /* Convert double solution back to custom type for residual check */
+    void *rhs_custom = std::malloc(static_cast<std::size_t>(n) * typesize);
+    if (!rhs_custom) { std::perror("malloc"); return EXIT_FAILURE; }
+    double_to_custom_array(rhs_custom, rhs_dbl, n, typesize, from_mpfr, prec);
 
     /* Compute residual.  For symmetric storage we need full COO for
      * the residual computation (reference_sparse_residual uses plain SpMV). */
@@ -341,24 +438,26 @@ int main(int argc, char **argv)
         SparseCOO full = expand_symmetric(coo, typesize);
         res = reference_sparse_residual(ctx, n, full.nnz,
                                          full.irn.data(), full.jcn.data(),
-                                         full.vals, b, rhs);
+                                         full.vals, b, rhs_custom);
         std::free(full.vals);
     } else {
         res = reference_sparse_residual(ctx, n, coo.nnz,
                                          coo.irn.data(), coo.jcn.data(),
-                                         coo.vals, b, rhs);
+                                         coo.vals, b, rhs_custom);
     }
 
     std::printf("  ||b-Ax||_1   / ||b||_1   = %.6e\n", res.l1);
     std::printf("  ||b-Ax||_2   / ||b||_2   = %.6e\n", res.l2);
     std::printf("  ||b-Ax||_inf / ||b||_inf = %.6e\n", res.linf);
 
+    std::free(rhs_custom);
+    std::free(a_dbl);
+    std::free(rhs_dbl);
     std::free(x_true);
     std::free(b);
-    std::free(rhs);
     std::free(coo.vals);
     dlclose(conv_lib);
-    dlclose(solver_lib);
+    dlclose(mumps_lib);
     close_libs(preload_handles);
     return EXIT_SUCCESS;
 }

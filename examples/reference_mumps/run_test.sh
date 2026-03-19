@@ -1,19 +1,17 @@
 #!/usr/bin/env bash
-# run_test.sh — test a sparse solver with linalg-tester's mumps_tester.
+# run_test.sh — test MUMPS (sequential) sparse solver with linalg-tester.
 #
-# By default this uses lapack_solve.so (a thin dgesv_ wrapper) so that
-# you can validate the tester without installing MUMPS.
+# Uses dmumps_c() via DMUMPS_STRUC_C directly — no wrapper library needed.
 #
 # Usage:
 #   cd examples/reference_mumps
-#   ./run_test.sh                          # uses LAPACK dgesv_ wrapper
-#   ./run_test.sh --solver mumps_solve.so  # uses real MUMPS wrapper
+#   ./run_test.sh
+#   ./run_test.sh --mumps /path/to/libdmumps_seq.so
 #
 # Prerequisites:
 #   - linalg-tester must be built (cmake + make in the repo root).
-#   - libmpfr-dev, libgmp-dev must be installed.
-#   - For the LAPACK solver:  apt install liblapack3 libblas3
-#   - For the MUMPS solver:   apt install libmumps-seq-dev (or libmumps-dev)
+#   - libmpfr-dev and libgmp-dev must be installed.
+#   - MUMPS sequential must be installed:  apt install libmumps-seq-dev
 
 set -euo pipefail
 
@@ -23,23 +21,49 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # ---------------------------------------------------------------------------
 # Parse arguments
 # ---------------------------------------------------------------------------
-SOLVER_LIB=""
+MUMPS_LIB=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --solver)
-            SOLVER_LIB="$2"
+        --mumps)
+            MUMPS_LIB="$2"
             shift 2
             ;;
         *)
             echo "Unknown argument: $1" >&2
-            echo "Usage: $0 [--solver <path/to/solver.so>]" >&2
+            echo "Usage: $0 [--mumps <path/to/libdmumps_seq.so>]" >&2
             exit 1
             ;;
     esac
 done
 
 # ---------------------------------------------------------------------------
-# Build double_conv.so (reuse from reference_blas or build locally)
+# Locate libdmumps_seq.so
+# ---------------------------------------------------------------------------
+if [[ -z "$MUMPS_LIB" ]]; then
+    for candidate in \
+        /usr/lib/x86_64-linux-gnu/libdmumps_seq.so \
+        /usr/lib/aarch64-linux-gnu/libdmumps_seq.so \
+        /usr/lib/x86_64-linux-gnu/libdmumps_seq-5.6.so \
+        /usr/lib/aarch64-linux-gnu/libdmumps_seq-5.6.so \
+        /usr/local/lib/libdmumps_seq.so; do
+        if [[ -f "$candidate" ]]; then
+            MUMPS_LIB="$candidate"
+            break
+        fi
+    done
+fi
+
+if [[ -z "$MUMPS_LIB" || ! -f "$MUMPS_LIB" ]]; then
+    echo "ERROR: Could not locate libdmumps_seq.so." >&2
+    echo "Install with:  apt install libmumps-seq-dev" >&2
+    echo "Or pass an explicit path:  $0 --mumps <path/to/libdmumps_seq.so>" >&2
+    exit 1
+fi
+
+echo "Using MUMPS: ${MUMPS_LIB}"
+
+# ---------------------------------------------------------------------------
+# Build double_conv.so
 # ---------------------------------------------------------------------------
 CONV_SRC="${REPO_ROOT}/examples/reference_blas/double_conv.c"
 CONV_LIB="${SCRIPT_DIR}/double_conv.so"
@@ -47,36 +71,6 @@ CONV_LIB="${SCRIPT_DIR}/double_conv.so"
 echo "Building double_conv.so..."
 gcc -O2 -shared -fPIC -o "${CONV_LIB}" "${CONV_SRC}" -lmpfr
 echo "  -> ${CONV_LIB}"
-
-# ---------------------------------------------------------------------------
-# Build solver wrapper (LAPACK by default)
-# ---------------------------------------------------------------------------
-if [[ -z "$SOLVER_LIB" ]]; then
-    SOLVER_SRC="${SCRIPT_DIR}/lapack_solve.c"
-    SOLVER_LIB="${SCRIPT_DIR}/lapack_solve.so"
-    echo "Building lapack_solve.so..."
-    # Find liblapack.so.3 and libblas.so.3 (prefer alternatives symlink)
-    LAPACK_SO=""
-    for p in /usr/lib/x86_64-linux-gnu/liblapack.so.3 \
-             /usr/lib/aarch64-linux-gnu/liblapack.so.3 \
-             /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3; do
-        [[ -f "$p" ]] && LAPACK_SO="$p" && break
-    done
-    BLAS_SO=""
-    for p in /usr/lib/x86_64-linux-gnu/libblas.so.3 \
-             /usr/lib/aarch64-linux-gnu/libblas.so.3 \
-             /usr/lib/x86_64-linux-gnu/blas/libblas.so.3; do
-        [[ -f "$p" ]] && BLAS_SO="$p" && break
-    done
-    if [[ -z "$LAPACK_SO" || -z "$BLAS_SO" ]]; then
-        echo "ERROR: Could not find liblapack.so.3 or libblas.so.3." >&2
-        echo "Install with:  apt install liblapack3 libblas3" >&2
-        exit 1
-    fi
-    gcc -O2 -shared -fPIC -o "${SOLVER_LIB}" "${SOLVER_SRC}" \
-        "${LAPACK_SO}" "${BLAS_SO}" -lm
-    echo "  -> ${SOLVER_LIB}"
-fi
 
 # ---------------------------------------------------------------------------
 # Locate mumps_tester binary
@@ -88,13 +82,12 @@ if [[ ! -x "$MUMPS_TESTER" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Run tests
+# Run tests — dmumps_c called directly via DMUMPS_STRUC_C
 # ---------------------------------------------------------------------------
 echo ""
 echo "=== Sparse solver test: unsymmetric, n=64, density=0.1 ==="
 "${MUMPS_TESTER}" \
-    --lib      "${SOLVER_LIB}" \
-    --solve-sym sparse_solve \
+    --lib      "${MUMPS_LIB}" \
     --conv-lib "${CONV_LIB}" \
     --typesize 8 \
     --n 64 \
@@ -106,8 +99,7 @@ echo "=== Sparse solver test: unsymmetric, n=64, density=0.1 ==="
 echo ""
 echo "=== Sparse solver test: SPD, n=64, density=0.15 ==="
 "${MUMPS_TESTER}" \
-    --lib      "${SOLVER_LIB}" \
-    --solve-sym sparse_solve \
+    --lib      "${MUMPS_LIB}" \
     --conv-lib "${CONV_LIB}" \
     --typesize 8 \
     --n 64 \
@@ -119,8 +111,7 @@ echo "=== Sparse solver test: SPD, n=64, density=0.15 ==="
 echo ""
 echo "=== Sparse solver test: general symmetric, n=64, density=0.1 ==="
 "${MUMPS_TESTER}" \
-    --lib      "${SOLVER_LIB}" \
-    --solve-sym sparse_solve \
+    --lib      "${MUMPS_LIB}" \
     --conv-lib "${CONV_LIB}" \
     --typesize 8 \
     --n 64 \

@@ -68,22 +68,6 @@ struct ResidualResult {
 };
 
 /* ------------------------------------------------------------------ */
-/* Sparse solver function pointer type                                  */
-/* ------------------------------------------------------------------ */
-
-/* The loaded solver library must export a function with this signature:
- *   int sparse_solve(int n, int nnz, int *irn, int *jcn,
- *                    void *a, void *rhs, int sym);
- * irn, jcn: 1-based row/col indices (COO format).
- * a:   nnz values (each typesize bytes).
- * rhs: n values (each typesize bytes), overwritten with solution.
- * sym: 0 = unsymmetric, 1 = SPD, 2 = general symmetric.
- * Returns 0 on success.                                               */
-extern "C" typedef int (*sparse_solve_fn)(
-    int n, int nnz, int *irn, int *jcn,
-    void *a, void *rhs, int sym);
-
-/* ------------------------------------------------------------------ */
 /* Public entry points                                                  */
 /* ------------------------------------------------------------------ */
 
