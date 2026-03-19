@@ -40,8 +40,8 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # Defaults
 # ---------------------------------------------------------------------------
 DDBLAS_LIB=""
-GEMM_SYM="dd_gemm_"
-TRSM_SYM="dd_trsm_"
+GEMM_SYM="ddgemm_"
+TRSM_SYM="ddtrsm_"
 OPT_M=64
 OPT_N=64
 OPT_K=64
@@ -112,8 +112,8 @@ echo "  -> ${CONV_LIB}"
 # ---------------------------------------------------------------------------
 # Locate tester binaries
 # ---------------------------------------------------------------------------
-GEMM_TESTER="${REPO_ROOT}/gemm_tester"
-TRSM_TESTER="${REPO_ROOT}/trsm_tester"
+GEMM_TESTER="${REPO_ROOT}/build/gemm_tester"
+TRSM_TESTER="${REPO_ROOT}/build/trsm_tester"
 
 for bin in "${GEMM_TESTER}" "${TRSM_TESTER}"; do
     if [[ ! -x "$bin" ]]; then

@@ -83,8 +83,8 @@ echo "  -> ${CONV_LIB}"
 # ---------------------------------------------------------------------------
 # Locate tester binaries
 # ---------------------------------------------------------------------------
-GEMM_TESTER="${REPO_ROOT}/gemm_tester"
-TRSM_TESTER="${REPO_ROOT}/trsm_tester"
+GEMM_TESTER="${REPO_ROOT}/build/gemm_tester"
+TRSM_TESTER="${REPO_ROOT}/build/trsm_tester"
 
 for bin in "${GEMM_TESTER}" "${TRSM_TESTER}"; do
     if [[ ! -x "$bin" ]]; then
