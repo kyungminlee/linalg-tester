@@ -10,7 +10,7 @@ pkg_check_modules(MPFR REQUIRED IMPORTED_TARGET mpfr)
 add_library(reference OBJECT src/reference.cpp)
 target_link_libraries(reference PUBLIC PkgConfig::GMP PkgConfig::MPFR)
 
-foreach(routine IN ITEMS gemm trsm)
+foreach(routine IN ITEMS gemm trsm mumps)
   add_executable(${routine}_tester src/${routine}_tester.cpp)
   target_link_libraries(${routine}_tester PRIVATE reference)
   target_include_directories(${routine}_tester PRIVATE third_party)

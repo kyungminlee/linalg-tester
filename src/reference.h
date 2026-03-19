@@ -60,6 +60,29 @@ struct ErrorResult {
     double normwise_relative; /* ||E||_F / ||ref||_F                 */
 };
 
+/* Residual norms for sparse solver testing: ||b - Ax|| / ||b||        */
+struct ResidualResult {
+    double l1;    /* ||r||_1  / ||b||_1    */
+    double l2;    /* ||r||_2  / ||b||_2    */
+    double linf;  /* ||r||_inf / ||b||_inf */
+};
+
+/* ------------------------------------------------------------------ */
+/* Sparse solver function pointer type                                  */
+/* ------------------------------------------------------------------ */
+
+/* The loaded solver library must export a function with this signature:
+ *   int sparse_solve(int n, int nnz, int *irn, int *jcn,
+ *                    void *a, void *rhs, int sym);
+ * irn, jcn: 1-based row/col indices (COO format).
+ * a:   nnz values (each typesize bytes).
+ * rhs: n values (each typesize bytes), overwritten with solution.
+ * sym: 0 = unsymmetric, 1 = SPD, 2 = general symmetric.
+ * Returns 0 on success.                                               */
+extern "C" typedef int (*sparse_solve_fn)(
+    int n, int nnz, int *irn, int *jcn,
+    void *a, void *rhs, int sym);
+
 /* ------------------------------------------------------------------ */
 /* Public entry points                                                  */
 /* ------------------------------------------------------------------ */
@@ -84,4 +107,19 @@ ErrorResult reference_test_trsm(
     const void *A,
     const void *B_in,
     const void *X_out
+);
+
+/* Compute residual norms for sparse Ax=b.
+ * irn, jcn: 1-based COO indices.
+ * a_vals:   nnz values (custom type).
+ * b:        original RHS (custom type, n elements).
+ * x:        computed solution (custom type, n elements).
+ * Returns ||b - Ax||/||b|| in L1, L2, Linf.                          */
+ResidualResult reference_sparse_residual(
+    const TesterCtx &ctx,
+    int n, int nnz,
+    const int *irn, const int *jcn,
+    const void *a_vals,
+    const void *b,
+    const void *x
 );

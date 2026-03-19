@@ -313,6 +313,114 @@ ErrorResult reference_test_gemm(
     return compute_error_metrics(C_ref, C_out, m, ctx);
 }
 
+/* ------------------------------------------------------------------ */
+/* Sparse residual: r = b - A*x, return ||r||/||b|| in L1, L2, Linf    */
+/* ------------------------------------------------------------------ */
+
+ResidualResult reference_sparse_residual(
+    const TesterCtx &ctx,
+    int n, int nnz,
+    const int *irn, const int *jcn,
+    const void *a_vals,
+    const void *b,
+    const void *x)
+{
+    mpfr_prec_t prec = ctx.prec;
+
+    /* Convert b and x to MPFR vectors */
+    auto *b_mpfr = new mpfr_t[n];
+    auto *x_mpfr = new mpfr_t[n];
+    auto *r_mpfr = new mpfr_t[n]; /* residual */
+
+    for (int i = 0; i < n; ++i) {
+        mpfr_init2(b_mpfr[i], prec);
+        mpfr_init2(x_mpfr[i], prec);
+        mpfr_init2(r_mpfr[i], prec);
+    }
+
+    const char *bp = static_cast<const char *>(b);
+    const char *xp = static_cast<const char *>(x);
+    for (int i = 0; i < n; ++i) {
+        ctx.to_mpfr(b_mpfr[i], bp + static_cast<std::size_t>(i) * ctx.typesize);
+        ctx.to_mpfr(x_mpfr[i], xp + static_cast<std::size_t>(i) * ctx.typesize);
+        mpfr_set(r_mpfr[i], b_mpfr[i], MPFR_RNDN); /* r = b initially */
+    }
+
+    /* r = b - A*x:  for each (irn[k], jcn[k], a[k]),  r[i-1] -= a[k]*x[j-1] */
+    {
+        MpfrScalar av(prec), prod(prec);
+        const char *ap = static_cast<const char *>(a_vals);
+        for (int k = 0; k < nnz; ++k) {
+            int i = irn[k] - 1; /* convert to 0-based */
+            int j = jcn[k] - 1;
+            ctx.to_mpfr(av.get(), ap + static_cast<std::size_t>(k) * ctx.typesize);
+            mpfr_mul(prod.get(), av.get(), x_mpfr[j], MPFR_RNDN);
+            mpfr_sub(r_mpfr[i], r_mpfr[i], prod.get(), MPFR_RNDN);
+        }
+    }
+
+    /* Compute norms */
+    MpfrScalar abs_ri(prec), abs_bi(prec);
+    MpfrScalar r_l1(prec), b_l1(prec);
+    MpfrScalar r_sq(prec), b_sq(prec);
+    MpfrScalar r_inf(prec), b_inf(prec);
+
+    mpfr_set_d(r_l1.get(),  0.0, MPFR_RNDN);
+    mpfr_set_d(b_l1.get(),  0.0, MPFR_RNDN);
+    mpfr_set_d(r_sq.get(),  0.0, MPFR_RNDN);
+    mpfr_set_d(b_sq.get(),  0.0, MPFR_RNDN);
+    mpfr_set_d(r_inf.get(), 0.0, MPFR_RNDN);
+    mpfr_set_d(b_inf.get(), 0.0, MPFR_RNDN);
+
+    for (int i = 0; i < n; ++i) {
+        mpfr_abs(abs_ri.get(), r_mpfr[i], MPFR_RNDN);
+        mpfr_abs(abs_bi.get(), b_mpfr[i], MPFR_RNDN);
+
+        /* L1 */
+        mpfr_add(r_l1.get(), r_l1.get(), abs_ri.get(), MPFR_RNDN);
+        mpfr_add(b_l1.get(), b_l1.get(), abs_bi.get(), MPFR_RNDN);
+
+        /* L2 (accumulate squares) */
+        mpfr_fma(r_sq.get(), r_mpfr[i], r_mpfr[i], r_sq.get(), MPFR_RNDN);
+        mpfr_fma(b_sq.get(), b_mpfr[i], b_mpfr[i], b_sq.get(), MPFR_RNDN);
+
+        /* Linf */
+        if (mpfr_cmp(abs_ri.get(), r_inf.get()) > 0)
+            mpfr_set(r_inf.get(), abs_ri.get(), MPFR_RNDN);
+        if (mpfr_cmp(abs_bi.get(), b_inf.get()) > 0)
+            mpfr_set(b_inf.get(), abs_bi.get(), MPFR_RNDN);
+    }
+
+    /* L2: take sqrt */
+    mpfr_sqrt(r_sq.get(), r_sq.get(), MPFR_RNDN);
+    mpfr_sqrt(b_sq.get(), b_sq.get(), MPFR_RNDN);
+
+    ResidualResult res;
+    MpfrScalar ratio(prec);
+
+    auto safe_div = [&](mpfr_t num, mpfr_t den) -> double {
+        if (mpfr_zero_p(den)) return 0.0;
+        mpfr_div(ratio.get(), num, den, MPFR_RNDN);
+        return mpfr_get_d(ratio.get(), MPFR_RNDN);
+    };
+
+    res.l1   = safe_div(r_l1.get(),  b_l1.get());
+    res.l2   = safe_div(r_sq.get(),  b_sq.get());
+    res.linf = safe_div(r_inf.get(), b_inf.get());
+
+    /* Cleanup */
+    for (int i = 0; i < n; ++i) {
+        mpfr_clear(b_mpfr[i]);
+        mpfr_clear(x_mpfr[i]);
+        mpfr_clear(r_mpfr[i]);
+    }
+    delete[] b_mpfr;
+    delete[] x_mpfr;
+    delete[] r_mpfr;
+
+    return res;
+}
+
 ErrorResult reference_test_trsm(
     const TesterCtx &ctx,
     char side, char uplo, char transa, char diag,
