@@ -1,20 +1,31 @@
 # linalg-tester
 
-Accuracy tester for custom BLAS routines. Each tester loads a user-supplied
-shared library, calls the target routine, and compares the result against a
-multi-precision (MPFR) reference computation. Two error metrics are reported:
+Accuracy tester for custom BLAS routines and sparse solvers. Each tester
+loads a user-supplied shared library, calls the target routine, and compares
+the result against a multi-precision (MPFR) reference computation.
+
+### BLAS testers (GEMM / TRSM)
 
 | Metric | Definition |
 |--------|-----------|
 | `max_rel` | max element-wise relative error: max_ij \|e_ij\| / \|ref_ij\| |
 | `normwise` | Frobenius-norm relative error: \|\|E\|\|_F / \|\|ref\|\|_F |
 
+### Sparse solver tester (MUMPS)
+
+| Metric | Definition |
+|--------|-----------|
+| `L1`   | \|\|b − Ax\|\|₁ / \|\|b\|\|₁ |
+| `L2`   | \|\|b − Ax\|\|₂ / \|\|b\|\|₂ |
+| `Linf` | \|\|b − Ax\|\|∞ / \|\|b\|\|∞ |
+
 ## Routines covered
 
-| Binary | BLAS routine | Combinations tested |
-|--------|-------------|---------------------|
-| `gemm_tester` | GEMM | all 4 `(transa, transb)` ∈ {N,T}² |
-| `trsm_tester` | TRSM | all 16 `(side, uplo, trans, diag)` ∈ {L,R}×{U,L}×{N,T}×{N,U} |
+| Binary | Routine | What is tested |
+|--------|---------|----------------|
+| `gemm_tester`  | GEMM | all 4 `(transa, transb)` ∈ {N,T}² |
+| `trsm_tester`  | TRSM | all 16 `(side, uplo, trans, diag)` ∈ {L,R}×{U,L}×{N,T}×{N,U} |
+| `mumps_tester` | Sparse solve (Ax=b) | unsymmetric / SPD / general symmetric, residual norms L1, L2, Linf |
 
 ## Repository layout
 
@@ -22,12 +33,15 @@ multi-precision (MPFR) reference computation. Two error metrics are reported:
 src/
   gemm_tester.cpp   — GEMM tester main
   trsm_tester.cpp   — TRSM tester main
+  mumps_tester.cpp  — sparse solver (MUMPS-style) tester main
   reference.cpp/h   — MPFR reference implementations
   tester_utils.h    — random-matrix generation, dlopen helpers
 examples/
   openblas_double/  — test against OpenBLAS (libopenblas.so) double precision
   reference_blas/   — test against system/reference BLAS (libblas.so.3) double precision
   dd_blas/          — test against a double-double BLAS (libddblas.so, not included)
+  reference_mumps/  — test sparse solver against LAPACK dgesv_ (double precision)
+  dd_mumps/         — test sparse solver with double-double scalars
 third_party/
   CLI11.hpp         — command-line parsing (header-only)
 Makefile
@@ -36,11 +50,13 @@ Makefile
 ## Building
 
 ```sh
-# Prerequisites: g++, libmpfr-dev, libgmp-dev
-make
+# Prerequisites: g++, cmake, libmpfr-dev, libgmp-dev
+mkdir -p build && cd build && cmake .. && make
 ```
 
-This produces two binaries: `gemm_tester` and `trsm_tester`.
+This produces three binaries in `build/`: `gemm_tester`, `trsm_tester`, and
+`mumps_tester`.  Alternatively, `make` from the repo root builds them without
+CMake.
 
 ## Usage
 
@@ -63,6 +79,31 @@ void custom_to_mpfr(mpfr_t dst, const void *src);
 
 // Convert src into one element at dst (typesize bytes)
 void mpfr_to_custom(void *dst, mpfr_t src, mpfr_rnd_t rnd);
+```
+
+### mumps_tester
+
+The sparse solver tester uses a similar interface:
+
+- `--lib <path>` — shared library containing the solver
+- `--solve-sym <name>` — symbol name (e.g. `sparse_solve`)
+- `--conv-lib <path>` — conversion library (same as above)
+- `--typesize <n>` — `sizeof` of the scalar type
+- `--preload <path>` — additional libraries to open first (repeatable)
+- `--n <n>` — matrix dimension (default 64)
+- `--sym <0|1|2>` — symmetry: 0 = unsymmetric, 1 = SPD, 2 = general symmetric
+- `--density <d>` — off-diagonal sparsity density (default 0.1)
+- `--seed <n>` — random seed (default 42)
+- `--prec <bits>` — MPFR working precision (default 256)
+
+The solver library must export a function matching this signature:
+
+```c
+// Solve Ax = rhs in-place.  irn/jcn are 1-based COO indices.
+// For sym != 0, only the lower triangle is stored.
+// Returns 0 on success.
+int sparse_solve(int n, int nnz, int *irn, int *jcn,
+                 void *a, void *rhs, int sym);
 ```
 
 ## Examples
@@ -178,3 +219,58 @@ cd examples/reference_blas
 ```
 
 All normwise errors are within a few ULPs of machine epsilon (≈ 2.2×10⁻¹⁶).
+
+### Sparse solver (LAPACK dgesv\_) — double precision
+
+The `examples/reference_mumps/` directory tests a sparse solver wrapper that
+converts a COO sparse matrix to dense and solves with LAPACK `dgesv_`.  This
+validates the `mumps_tester` pipeline without requiring a MUMPS installation.
+
+**Prerequisites**
+
+```sh
+apt install libblas3 liblapack3 libmpfr-dev libgmp-dev
+mkdir -p build && cd build && cmake .. && make
+```
+
+**Run**
+
+```sh
+cd examples/reference_mumps
+./run_test.sh
+# or with a custom solver:
+./run_test.sh --solver /path/to/my_solver.so
+```
+
+The script:
+1. Compiles `double_conv.so` (the `double` ↔ MPFR conversion library).
+2. Compiles `lapack_solve.so` (thin `dgesv_` wrapper exporting `sparse_solve`).
+3. Runs `mumps_tester` for unsymmetric, SPD, and general symmetric matrices.
+
+**Sample output** (LAPACK 3.12.0 / Netlib BLAS 3.12.0, n=64, seed=42, prec=256 bits):
+
+```
+=== Sparse solver test: unsymmetric, n=64, density=0.1 ===
+=== Sparse solver test: n=64, sym=0 (unsymmetric), density=0.10 ===
+  Matrix: n=64, nnz=465 (stored), density=0.1135
+  ||b-Ax||_1   / ||b||_1   = 2.326664e-16
+  ||b-Ax||_2   / ||b||_2   = 2.979754e-16
+  ||b-Ax||_inf / ||b||_inf = 5.685390e-16
+
+=== Sparse solver test: SPD, n=64, density=0.15 ===
+=== Sparse solver test: n=64, sym=1 (SPD), density=0.15 ===
+  Matrix: n=64, nnz=360 (stored), density=0.0879
+  ||b-Ax||_1   / ||b||_1   = 2.839070e-16
+  ||b-Ax||_2   / ||b||_2   = 3.316017e-16
+  ||b-Ax||_inf / ||b||_inf = 4.350538e-16
+
+=== Sparse solver test: general symmetric, n=64, density=0.1 ===
+=== Sparse solver test: n=64, sym=2 (general symmetric), density=0.10 ===
+  Matrix: n=64, nnz=257 (stored), density=0.0627
+  ||b-Ax||_1   / ||b||_1   = 2.521935e-16
+  ||b-Ax||_2   / ||b||_2   = 3.219582e-16
+  ||b-Ax||_inf / ||b||_inf = 5.904727e-16
+```
+
+All residual norms are within a few ULPs of machine epsilon (≈ 2.2×10⁻¹⁶),
+confirming that the solver and tester pipeline are numerically correct.
