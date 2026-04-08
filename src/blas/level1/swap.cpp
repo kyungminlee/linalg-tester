@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -48,10 +49,12 @@ void test_swap(const TesterCtx &ctx, void *lib, const char *sym,
     custom_to_mpfr_vec(y_ref, x_in, incx, ctx);  /* y_ref = x_in */
 
     /* Copy inputs for the call */
-    void *x_out = std::malloc(static_cast<std::size_t>(alloc_x) * ctx.typesize);
-    void *y_out = std::malloc(static_cast<std::size_t>(alloc_y) * ctx.typesize);
-    std::memcpy(x_out, x_in, static_cast<std::size_t>(alloc_x) * ctx.typesize);
-    std::memcpy(y_out, y_in, static_cast<std::size_t>(alloc_y) * ctx.typesize);
+    unsigned sentinel_seed_x = 0xDEAD0001;
+    unsigned sentinel_seed_y = 0xDEAD0002;
+    void *x_out = alloc_with_sentinel(alloc_x, ctx.typesize, sentinel_seed_x);
+    void *y_out = alloc_with_sentinel(alloc_y, ctx.typesize, sentinel_seed_y);
+    copy_vector_active(x_out, x_in, n, incx, ctx.typesize);
+    copy_vector_active(y_out, y_in, n, incy, ctx.typesize);
 
     fn(&n, x_out, &incx, y_out, &incy);
 
@@ -64,10 +67,17 @@ void test_swap(const TesterCtx &ctx, void *lib, const char *sym,
     err.max_absolute_at_zero = std::max(err_x.max_absolute_at_zero, err_y.max_absolute_at_zero);
     err.nan_inf_mismatches = err_x.nan_inf_mismatches + err_y.nan_inf_mismatches;
 
+    SentinelResult sr_x = check_vector_sentinels(x_out, n, incx, ctx.typesize, sentinel_seed_x);
+    SentinelResult sr_y = check_vector_sentinels(y_out, n, incy, ctx.typesize, sentinel_seed_y);
+    SentinelResult sr;
+    sr.passed = sr_x.passed && sr_y.passed;
+    sr.corrupted_count = sr_x.corrupted_count + sr_y.corrupted_count;
+    sr.first_offset = sr_x.passed ? sr_y.first_offset : sr_x.first_offset;
+
     char params_str[128];
     std::snprintf(params_str, sizeof(params_str),
                   "n=%d incx=%d incy=%d", n, incx, incy);
-    report_result("SWAP", params_str, err, format);
+    report_result("SWAP", params_str, err, &sr, format);
 
     std::free(x_in);
     std::free(y_in);

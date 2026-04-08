@@ -2,8 +2,8 @@
 
 ## 1. Safety & Integrity (Phase 1 Refactor Incomplete)
 - [x] **Sentinel Checking:** Implement `src/core/sentinel.h` and `src/core/sentinel.cpp` for out-of-bounds write detection.
-- [ ] **Buffer Allocation:** Update generators to use `alloc_with_sentinel` when `ld_pad > 0` or `|inc| > 1`.
-- [ ] **Validation:** Update test drivers (e.g., `gemm.cpp`, `trsm.cpp`) to call `check_sentinels` and report results.
+- [x] **Buffer Allocation:** Update generators to use `alloc_with_sentinel` when `ld_pad > 0` or `|inc| > 1`.
+- [x] **Validation:** Update test drivers (e.g., `gemm.cpp`, `trsm.cpp`) to call `check_sentinels` and report results.
 - [x] **Reporting:** Update `report_result` in `src/core/report.cpp` to include a `SentinelResult` parameter as planned.
 
 ## 2. Numerical Accuracy (Error Metrics)

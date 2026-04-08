@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <algorithm>
 #include <cctype>
@@ -120,8 +121,9 @@ void test_gbmv(const TesterCtx &ctx, void *lib, const char *sym,
         void *alpha = gen_random_array(1,       ctx.typesize, ctx.from_mpfr, prec, &seed_ab);
         void *beta  = gen_random_array(1,       ctx.typesize, ctx.from_mpfr, prec, &seed_ab);
 
-        void *y_out = std::malloc(static_cast<std::size_t>(y_alloc) * ctx.typesize);
-        std::memcpy(y_out, y_in, static_cast<std::size_t>(y_alloc) * ctx.typesize);
+        unsigned sentinel_seed = 0xDEAD0001;
+        void *y_out = alloc_with_sentinel(y_alloc, ctx.typesize, sentinel_seed);
+        copy_vector_active(y_out, y_in, ylen, incy, ctx.typesize);
 
         fn(&trans, &m, &n, &kl, &ku,
            alpha, AB, &ldab, x, &incx, beta, y_out, &incy,
@@ -149,12 +151,13 @@ void test_gbmv(const TesterCtx &ctx, void *lib, const char *sym,
                        mpfr_beta.get(), y_in_mpfr);
 
         ErrorResult err = compute_error_vector(y_ref, y_out, incy, ctx);
+        SentinelResult sr = check_vector_sentinels(y_out, ylen, incy, ctx.typesize, sentinel_seed);
 
         char params_str[128];
         std::snprintf(params_str, sizeof(params_str),
                       "trans=%c m=%d n=%d kl=%d ku=%d",
                       trans, m, n, kl, ku);
-        report_result("GBMV", params_str, err, format);
+        report_result("GBMV", params_str, err, &sr, format);
 
         std::free(AB); std::free(x); std::free(y_in);
         std::free(y_out); std::free(alpha); std::free(beta);

@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -45,8 +46,9 @@ void test_scal(const TesterCtx &ctx, void *lib, const char *sym,
     ctx.to_mpfr(alpha_mpfr.get(), alpha);
 
     /* Copy input for the call */
-    void *x_out = std::malloc(static_cast<std::size_t>(alloc_x) * ctx.typesize);
-    std::memcpy(x_out, x_in, static_cast<std::size_t>(alloc_x) * ctx.typesize);
+    unsigned sentinel_seed = 0xDEAD0001;
+    void *x_out = alloc_with_sentinel(alloc_x, ctx.typesize, sentinel_seed);
+    copy_vector_active(x_out, x_in, n, incx, ctx.typesize);
 
     fn(&n, alpha, x_out, &incx);
 
@@ -57,10 +59,12 @@ void test_scal(const TesterCtx &ctx, void *lib, const char *sym,
 
     ErrorResult err = compute_error_vector(x_ref, x_out, incx, ctx);
 
+    SentinelResult sr = check_vector_sentinels(x_out, n, incx, ctx.typesize, sentinel_seed);
+
     char params_str[128];
     std::snprintf(params_str, sizeof(params_str),
                   "n=%d incx=%d", n, incx);
-    report_result("SCAL", params_str, err, format);
+    report_result("SCAL", params_str, err, &sr, format);
 
     std::free(x_in);
     std::free(x_out);

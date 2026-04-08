@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <cctype>
 #include <cstdio>
@@ -110,8 +111,9 @@ void test_syr2k(const TesterCtx &ctx, void *lib, const char *sym,
         void *alpha = gen_random_array(1,             ctx.typesize, ctx.from_mpfr, prec, &seed_ab);
         void *beta  = gen_random_array(1,             ctx.typesize, ctx.from_mpfr, prec, &seed_ab);
 
-        void *C_out = std::malloc(static_cast<std::size_t>(ldc) * n * ctx.typesize);
-        std::memcpy(C_out, C_in, static_cast<std::size_t>(ldc) * n * ctx.typesize);
+        unsigned sentinel_seed = 0xDEAD0001;
+        void *C_out = alloc_with_sentinel(ldc * n, ctx.typesize, sentinel_seed);
+        copy_matrix_active(C_out, C_in, n, n, ldc, ctx.typesize);
 
         fn(&uplo, &trans, &n, &k,
            alpha, A, &lda, B, &ldb, beta, C_out, &ldc,
@@ -135,11 +137,12 @@ void test_syr2k(const TesterCtx &ctx, void *lib, const char *sym,
                         mpfr_beta.get(), C_in_mpfr);
 
         ErrorResult err = compute_error_matrix_triangle(C_ref, C_out, ldc, uplo, ctx);
+        SentinelResult sr = check_matrix_sentinels(C_out, n, n, ldc, ctx.typesize, sentinel_seed);
 
         char params_str[128];
         std::snprintf(params_str, sizeof(params_str),
                       "uplo=%c trans=%c", uplo, trans);
-        report_result("SYR2K", params_str, err, format);
+        report_result("SYR2K", params_str, err, &sr, format);
 
         std::free(A); std::free(B); std::free(C_in);
         std::free(C_out); std::free(alpha); std::free(beta);

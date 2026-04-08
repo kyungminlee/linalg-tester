@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -53,8 +54,9 @@ void test_axpy(const TesterCtx &ctx, void *lib, const char *sym,
     ctx.to_mpfr(alpha_mpfr.get(), alpha);
 
     /* Copy y for the call */
-    void *y_out = std::malloc(static_cast<std::size_t>(alloc_y) * ctx.typesize);
-    std::memcpy(y_out, y_in, static_cast<std::size_t>(alloc_y) * ctx.typesize);
+    unsigned sentinel_seed = 0xDEAD0001;
+    void *y_out = alloc_with_sentinel(alloc_y, ctx.typesize, sentinel_seed);
+    copy_vector_active(y_out, y_in, n, incy, ctx.typesize);
 
     fn(&n, alpha, x_in, &incx, y_out, &incy);
 
@@ -70,10 +72,12 @@ void test_axpy(const TesterCtx &ctx, void *lib, const char *sym,
 
     ErrorResult err = compute_error_vector(y_ref, y_out, incy, ctx);
 
+    SentinelResult sr = check_vector_sentinels(y_out, n, incy, ctx.typesize, sentinel_seed);
+
     char params_str[128];
     std::snprintf(params_str, sizeof(params_str),
                   "n=%d incx=%d incy=%d", n, incx, incy);
-    report_result("AXPY", params_str, err, format);
+    report_result("AXPY", params_str, err, &sr, format);
 
     std::free(x_in);
     std::free(y_in);

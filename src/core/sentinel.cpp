@@ -83,3 +83,38 @@ SentinelResult check_vector_sentinels(const void *buf, int n, int inc,
 
     return check_sentinels(buf, num_elements, typesize, active_mask.get(), seed);
 }
+
+void *alloc_with_sentinel(int num_elements, std::size_t typesize, unsigned sentinel_seed)
+{
+    std::size_t total = static_cast<std::size_t>(num_elements) * typesize;
+    void *buf = std::malloc(total);
+    if (!buf) { std::perror("malloc"); std::exit(EXIT_FAILURE); }
+    fill_sentinel(buf, total, sentinel_seed);
+    return buf;
+}
+
+void copy_matrix_active(void *dst, const void *src, int rows, int cols,
+                         int ld, std::size_t typesize)
+{
+    auto *d = static_cast<char *>(dst);
+    auto *s = static_cast<const char *>(src);
+    std::size_t row_bytes = static_cast<std::size_t>(rows) * typesize;
+    std::size_t col_stride = static_cast<std::size_t>(ld) * typesize;
+    for (int j = 0; j < cols; ++j) {
+        std::memcpy(d + j * col_stride, s + j * col_stride, row_bytes);
+    }
+}
+
+void copy_vector_active(void *dst, const void *src, int n, int inc,
+                         std::size_t typesize)
+{
+    int abs_inc = std::abs(inc);
+    if (abs_inc == 0) abs_inc = 1;
+
+    auto *d = static_cast<char *>(dst);
+    auto *s = static_cast<const char *>(src);
+    std::size_t stride = static_cast<std::size_t>(abs_inc) * typesize;
+    for (int k = 0; k < n; ++k) {
+        std::memcpy(d + k * stride, s + k * stride, typesize);
+    }
+}

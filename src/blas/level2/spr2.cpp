@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <cctype>
 #include <cstdio>
@@ -130,7 +131,7 @@ void test_spr2(const TesterCtx &ctx, void *lib, const char *sym,
         char params_str[128];
         std::snprintf(params_str, sizeof(params_str),
                       "uplo=%c n=%d", uplo, n);
-        report_result("SPR2", params_str, err, format);
+        report_result("SPR2", params_str, err, nullptr, format);
 
         std::free(AP_in); std::free(AP_out);
         std::free(x); std::free(y); std::free(alpha);

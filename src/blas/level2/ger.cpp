@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -72,8 +73,9 @@ void test_ger(const TesterCtx &ctx, void *lib, const char *sym,
     void *A_in  = gen_random_array(lda * n, ctx.typesize, ctx.from_mpfr, prec, &seed_A);
     void *alpha = gen_random_array(1,       ctx.typesize, ctx.from_mpfr, prec, &seed_al);
 
-    void *A_out = std::malloc(static_cast<std::size_t>(lda) * n * ctx.typesize);
-    std::memcpy(A_out, A_in, static_cast<std::size_t>(lda) * n * ctx.typesize);
+    unsigned sentinel_seed = 0xDEAD0001;
+    void *A_out = alloc_with_sentinel(lda * n, ctx.typesize, sentinel_seed);
+    copy_matrix_active(A_out, A_in, m, n, lda, ctx.typesize);
 
     fn(&m, &n, alpha, x, &incx, y, &incy, A_out, &lda);
 
@@ -92,12 +94,13 @@ void test_ger(const TesterCtx &ctx, void *lib, const char *sym,
     mpfr_ger_ref(A_ref, m, n, mpfr_alpha.get(), x_mpfr, y_mpfr, A_in_mpfr);
 
     ErrorResult err = compute_error_matrix(A_ref, A_out, lda, ctx);
+    SentinelResult sr = check_matrix_sentinels(A_out, m, n, lda, ctx.typesize, sentinel_seed);
 
     char params_str[128];
     std::snprintf(params_str, sizeof(params_str),
                   "m=%d n=%d incx=%d incy=%d",
                   m, n, incx, incy);
-    report_result("GER", params_str, err, format);
+    report_result("GER", params_str, err, &sr, format);
 
     std::free(x); std::free(y); std::free(A_in);
     std::free(A_out); std::free(alpha);

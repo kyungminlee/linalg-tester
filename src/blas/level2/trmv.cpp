@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <cctype>
 #include <cstdio>
@@ -95,8 +96,9 @@ void test_trmv(const TesterCtx &ctx, void *lib, const char *sym,
                                               ctx.from_mpfr, prec, &seed_x);
 
                 /* Save x_in before in-place call */
-                void *x_work = std::malloc(static_cast<std::size_t>(x_alloc) * ctx.typesize);
-                std::memcpy(x_work, x_in, static_cast<std::size_t>(x_alloc) * ctx.typesize);
+                unsigned sentinel_seed = 0xDEAD0001;
+                void *x_work = alloc_with_sentinel(x_alloc, ctx.typesize, sentinel_seed);
+                copy_vector_active(x_work, x_in, n, incx, ctx.typesize);
 
                 fn(&uplo, &trans, &diag, &n, A, &lda, x_work, &incx,
                    (std::size_t)1, (std::size_t)1, (std::size_t)1);
@@ -116,12 +118,13 @@ void test_trmv(const TesterCtx &ctx, void *lib, const char *sym,
                               A_mpfr, x_in_mpfr);
 
                 ErrorResult err = compute_error_vector(y_ref, x_work, incx, ctx);
+                SentinelResult sr = check_vector_sentinels(x_work, n, incx, ctx.typesize, sentinel_seed);
 
                 char params_str[128];
                 std::snprintf(params_str, sizeof(params_str),
                               "uplo=%c trans=%c diag=%c n=%d incx=%d",
                               uplo, trans, diag, n, incx);
-                report_result("TRMV", params_str, err, format);
+                report_result("TRMV", params_str, err, &sr, format);
 
                 std::free(A); std::free(x_in); std::free(x_work);
             }

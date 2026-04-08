@@ -29,3 +29,19 @@ SentinelResult check_matrix_sentinels(const void *buf, int rows, int cols,
 // Sentinel positions: all other positions in [0, 1+(n-1)*|inc|)
 SentinelResult check_vector_sentinels(const void *buf, int n, int inc,
                                        std::size_t typesize, unsigned seed);
+
+// Allocate a buffer of num_elements * typesize bytes, filled with sentinel pattern.
+// Returns the allocated buffer (caller must std::free it).
+void *alloc_with_sentinel(int num_elements, std::size_t typesize, unsigned sentinel_seed);
+
+// Copy only active matrix positions (rows 0..rows-1 of each column) from src to dst.
+// Both src and dst have leading dimension ld. Only the active rows are copied;
+// sentinel positions in the padding (rows..ld-1) are left untouched in dst.
+void copy_matrix_active(void *dst, const void *src, int rows, int cols,
+                         int ld, std::size_t typesize);
+
+// Copy only active vector positions (k * |inc| for k = 0..n-1) from src to dst.
+// Both src and dst have total length 1 + (n-1)*|inc|. Only the strided active
+// elements are copied; gap positions are left untouched in dst.
+void copy_vector_active(void *dst, const void *src, int n, int inc,
+                         std::size_t typesize);

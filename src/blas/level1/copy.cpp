@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -43,17 +44,20 @@ void test_copy(const TesterCtx &ctx, void *lib, const char *sym,
     MpfrMatrix y_ref(n, 1, prec);
     custom_to_mpfr_vec(y_ref, x_in, incx, ctx);
 
-    /* Allocate output y (zero-initialized) */
-    void *y_out = std::calloc(static_cast<std::size_t>(alloc_y), ctx.typesize);
+    /* Allocate output y with sentinel checking */
+    unsigned sentinel_seed = 0xDEAD0001;
+    void *y_out = alloc_with_sentinel(alloc_y, ctx.typesize, sentinel_seed);
 
     fn(&n, x_in, &incx, y_out, &incy);
 
     ErrorResult err = compute_error_vector(y_ref, y_out, incy, ctx);
 
+    SentinelResult sr = check_vector_sentinels(y_out, n, incy, ctx.typesize, sentinel_seed);
+
     char params_str[128];
     std::snprintf(params_str, sizeof(params_str),
                   "n=%d incx=%d incy=%d", n, incx, incy);
-    report_result("COPY", params_str, err, format);
+    report_result("COPY", params_str, err, &sr, format);
 
     std::free(x_in);
     std::free(y_out);

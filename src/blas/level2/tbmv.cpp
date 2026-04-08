@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <algorithm>
 #include <cctype>
@@ -114,8 +115,9 @@ void test_tbmv(const TesterCtx &ctx, void *lib, const char *sym,
                                                 ctx.typesize, ctx.from_mpfr, prec, &seed_AB);
         void *x_in = gen_random_array(x_alloc, ctx.typesize, ctx.from_mpfr, prec, &seed_x);
 
-        void *x_out = std::malloc(static_cast<std::size_t>(x_alloc) * ctx.typesize);
-        std::memcpy(x_out, x_in, static_cast<std::size_t>(x_alloc) * ctx.typesize);
+        unsigned sentinel_seed = 0xDEAD0001;
+        void *x_out = alloc_with_sentinel(x_alloc, ctx.typesize, sentinel_seed);
+        copy_vector_active(x_out, x_in, n, incx, ctx.typesize);
 
         fn(&uplo, &trans, &diag, &n, &k,
            AB, &ldab, x_out, &incx,
@@ -134,12 +136,13 @@ void test_tbmv(const TesterCtx &ctx, void *lib, const char *sym,
         mpfr_matvec(y_ref, trans_ref, n, A_full, x_mpfr);
 
         ErrorResult err = compute_error_vector(y_ref, x_out, incx, ctx);
+        SentinelResult sr = check_vector_sentinels(x_out, n, incx, ctx.typesize, sentinel_seed);
 
         char params_str[128];
         std::snprintf(params_str, sizeof(params_str),
                       "uplo=%c trans=%c diag=%c n=%d k=%d",
                       uplo, trans, diag, n, k);
-        report_result("TBMV", params_str, err, format);
+        report_result("TBMV", params_str, err, &sr, format);
 
         std::free(AB); std::free(x_in); std::free(x_out);
     }}}

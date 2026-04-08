@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <algorithm>
 #include <cctype>
@@ -123,8 +124,9 @@ void test_sbmv(const TesterCtx &ctx, void *lib, const char *sym,
         void *alpha = gen_random_array(1,       ctx.typesize, ctx.from_mpfr, prec, &seed_ab);
         void *beta  = gen_random_array(1,       ctx.typesize, ctx.from_mpfr, prec, &seed_ab);
 
-        void *y_out = std::malloc(static_cast<std::size_t>(y_alloc) * ctx.typesize);
-        std::memcpy(y_out, y_in, static_cast<std::size_t>(y_alloc) * ctx.typesize);
+        unsigned sentinel_seed = 0xDEAD0001;
+        void *y_out = alloc_with_sentinel(y_alloc, ctx.typesize, sentinel_seed);
+        copy_vector_active(y_out, y_in, n, incy, ctx.typesize);
 
         fn(&uplo, &n, &k, alpha, AB, &ldab, x, &incx, beta, y_out, &incy,
            (std::size_t)1);
@@ -148,11 +150,12 @@ void test_sbmv(const TesterCtx &ctx, void *lib, const char *sym,
                        mpfr_beta.get(), y_in_mpfr);
 
         ErrorResult err = compute_error_vector(y_ref, y_out, incy, ctx);
+        SentinelResult sr = check_vector_sentinels(y_out, n, incy, ctx.typesize, sentinel_seed);
 
         char params_str[128];
         std::snprintf(params_str, sizeof(params_str),
                       "uplo=%c n=%d k=%d", uplo, n, k);
-        report_result("SBMV", params_str, err, format);
+        report_result("SBMV", params_str, err, &sr, format);
 
         std::free(AB); std::free(x); std::free(y_in);
         std::free(y_out); std::free(alpha); std::free(beta);

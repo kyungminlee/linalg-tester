@@ -6,6 +6,7 @@
 #include "../../core/generators.h"
 #include "../../core/loader.h"
 #include "../../core/report.h"
+#include "../../core/sentinel.h"
 
 #include <cctype>
 #include <cstdio>
@@ -123,8 +124,9 @@ void test_trmm(const TesterCtx &ctx, void *lib, const char *sym,
         void *B_in  = gen_random_array(ldb * n, ctx.typesize, ctx.from_mpfr, prec, &seed_B);
         void *alpha = gen_random_array(1,       ctx.typesize, ctx.from_mpfr, prec, &seed_al);
 
-        void *B_out = std::malloc(static_cast<std::size_t>(ldb) * n * ctx.typesize);
-        std::memcpy(B_out, B_in, static_cast<std::size_t>(ldb) * n * ctx.typesize);
+        unsigned sentinel_seed = 0xDEAD0001;
+        void *B_out = alloc_with_sentinel(ldb * n, ctx.typesize, sentinel_seed);
+        copy_matrix_active(B_out, B_in, m, n, ldb, ctx.typesize);
 
         fn(&side, &uplo, &trans, &diag,
            &m, &n, alpha, A, &lda, B_out, &ldb,
@@ -147,11 +149,12 @@ void test_trmm(const TesterCtx &ctx, void *lib, const char *sym,
                        m, n, mpfr_alpha.get(), A_mpfr, B_in_mpfr);
 
         ErrorResult err = compute_error_matrix(B_ref, B_out, ldb, ctx);
+        SentinelResult sr = check_matrix_sentinels(B_out, m, n, ldb, ctx.typesize, sentinel_seed);
 
         char params_str[128];
         std::snprintf(params_str, sizeof(params_str),
                       "side=%c uplo=%c trans=%c diag=%c", side, uplo, trans, diag);
-        report_result("TRMM", params_str, err, format);
+        report_result("TRMM", params_str, err, &sr, format);
 
         std::free(A); std::free(B_in); std::free(B_out); std::free(alpha);
     }}}}
