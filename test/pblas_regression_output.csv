@@ -58,6 +58,9 @@ PTRMM,side=R uplo=L trans=N diag=U grid=1x1,2.098189e-15,8.603293e-17,true,0
 PTRMM,side=R uplo=L trans=T diag=N grid=1x1,1.918201e-16,8.049690e-17,true,0
 PTRMM,side=R uplo=L trans=T diag=U grid=1x1,1.368217e-15,8.864357e-17,true,0
 
+=== ptran (Parallel matrix transpose) ===
+PTRAN,grid=1x1,2.593088e-16,5.577281e-17,true,0
+
 === pgemv (Parallel matrix-vector) ===
 PGEMV,trans=N grid=1x1,2.461665e-16,1.089926e-16,true,0
 PGEMV,trans=T grid=1x1,2.511355e-16,9.638375e-17,true,0
@@ -117,4 +120,7 @@ PNRM2,n=8 grid=1x1,7.356109e-18,7.356109e-18,true,0
 
 === pasum (Parallel absolute sum) ===
 PASUM,n=8 grid=1x1,3.362510e-17,3.362510e-17,true,0
+
+=== pamax (Parallel max absolute index) ===
+PAMAX,n=8 grid=1x1 indx_ref=6 indx_out=6,0.000000e+00,0.000000e+00,true,0
 

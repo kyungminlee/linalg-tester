@@ -16,3 +16,9 @@ BLACS_GAMX2D,m=8 n=8 scope=A nprocs=1,true,0.000000e+00,0
 === blacs_gamn2d (BLACS global min) ===
 BLACS_GAMN2D,m=8 n=8 scope=A nprocs=1,true,0.000000e+00,0
 
+=== blacs_trsd2d (BLACS triangular p2p) ===
+BLACS_TRSD2D,m=8 n=8 lda=8 nprocs=1,true,-1.000000e+00,0
+
+=== blacs_trbs2d (BLACS triangular bcast) ===
+BLACS_TRBS2D,m=8 n=8 scope=A nprocs=1,true,-1.000000e+00,0
+

@@ -576,6 +576,12 @@ BLACS_GAMX2D,m=8 n=8 scope=A nprocs=1,true,0.000000e+00,0
 === blacs_gamn2d (BLACS global min) ===
 BLACS_GAMN2D,m=8 n=8 scope=A nprocs=1,true,0.000000e+00,0
 
+=== blacs_trsd2d (BLACS triangular p2p) ===
+BLACS_TRSD2D,m=8 n=8 lda=8 nprocs=1,true,-1.000000e+00,0
+
+=== blacs_trbs2d (BLACS triangular bcast) ===
+BLACS_TRBS2D,m=8 n=8 scope=A nprocs=1,true,-1.000000e+00,0
+
 === pgemm (Parallel matrix multiply) ===
 PGEMM,transa=N transb=N grid=1x1,4.990762e-15,7.873721e-17,true,0
 PGEMM,transa=N transb=T grid=1x1,6.736072e-16,6.235698e-17,true,0
@@ -636,6 +642,9 @@ PTRMM,side=R uplo=L trans=N diag=U grid=1x1,2.098189e-15,8.603293e-17,true,0
 PTRMM,side=R uplo=L trans=T diag=N grid=1x1,1.918201e-16,8.049690e-17,true,0
 PTRMM,side=R uplo=L trans=T diag=U grid=1x1,1.368217e-15,8.864357e-17,true,0
 
+=== ptran (Parallel matrix transpose) ===
+PTRAN,grid=1x1,2.593088e-16,5.577281e-17,true,0
+
 === pgemv (Parallel matrix-vector) ===
 PGEMV,trans=N grid=1x1,2.461665e-16,1.089926e-16,true,0
 PGEMV,trans=T grid=1x1,2.511355e-16,9.638375e-17,true,0
@@ -695,4 +704,55 @@ PNRM2,n=8 grid=1x1,7.356109e-18,7.356109e-18,true,0
 
 === pasum (Parallel absolute sum) ===
 PASUM,n=8 grid=1x1,3.362510e-17,3.362510e-17,true,0
+
+=== pamax (Parallel max absolute index) ===
+PAMAX,n=8 grid=1x1 indx_ref=6 indx_out=6,0.000000e+00,0.000000e+00,true,0
+
+=== phemm (Parallel Hermitian multiply) ===
+PHEMM,side=L uplo=U grid=1x1,1.557952e-15,1.134926e-16,true,0
+PHEMM,side=L uplo=L grid=1x1,5.902236e-16,1.370729e-16,true,0
+PHEMM,side=R uplo=U grid=1x1,7.443652e-16,1.163664e-16,true,0
+PHEMM,side=R uplo=L grid=1x1,1.102630e-15,1.340946e-16,true,0
+
+=== pherk (Parallel Hermitian rank-k) ===
+PHERK,uplo=U trans=N grid=1x1,3.017673e-15,4.004455e-17,true,0
+PHERK,uplo=U trans=C grid=1x1,3.430360e-16,4.424461e-17,true,0
+PHERK,uplo=L trans=N grid=1x1,3.665740e-16,3.979576e-17,true,0
+PHERK,uplo=L trans=C grid=1x1,5.039025e-16,4.029238e-17,true,0
+
+=== pher2k (Parallel Hermitian rank-2k) ===
+PHER2K,uplo=U trans=N grid=1x1,2.362919e-15,1.044619e-16,true,0
+PHER2K,uplo=U trans=C grid=1x1,3.749628e-16,1.079497e-16,true,0
+PHER2K,uplo=L trans=N grid=1x1,5.956578e-16,1.106990e-16,true,0
+PHER2K,uplo=L trans=C grid=1x1,3.917115e-16,9.906142e-17,true,0
+
+=== ptranc (Parallel conjugate transpose) ===
+PTRANC,grid=1x1,3.876187e-15,8.461408e-17,true,0
+
+=== ptranu (Parallel unconj. transpose) ===
+PTRANU,grid=1x1,3.994301e-16,8.408870e-17,true,0
+
+=== phemv (Parallel Hermitian MV) ===
+PHEMV,uplo=U grid=1x1,6.315705e-16,1.782501e-16,true,0
+PHEMV,uplo=L grid=1x1,3.945150e-16,2.168621e-16,true,0
+
+=== pgeru (Parallel unconj. rank-1) ===
+PGERU,grid=1x1,1.533338e-16,6.533745e-17,true,0
+
+=== pgerc (Parallel conj. rank-1) ===
+PGERC,grid=1x1,6.106096e-16,7.192035e-17,true,0
+
+=== pher (Parallel Hermitian rank-1) ===
+PHER,uplo=U grid=1x1,1.207911e-16,4.307037e-17,true,0
+PHER,uplo=L grid=1x1,1.301806e-16,3.902588e-17,true,0
+
+=== pher2 (Parallel Hermitian rank-2) ===
+PHER2,uplo=U grid=1x1,1.929872e-16,6.069456e-17,true,0
+PHER2,uplo=L grid=1x1,5.773020e-16,8.119332e-17,true,0
+
+=== pdotc (Parallel conj. dot product) ===
+PDOTC,n=8 grid=1x1,1.201282e-16,1.201282e-16,true,0
+
+=== pdotu (Parallel unconj. dot product) ===
+PDOTU,n=8 grid=1x1,8.134652e-17,8.134652e-17,true,0
 
