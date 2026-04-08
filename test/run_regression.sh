@@ -226,6 +226,48 @@ if [[ -f "$COMPLEX_CONV_LIB" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Step 3d: Run BLACS tests (if ScaLAPACK is available)
+# ---------------------------------------------------------------------------
+SCALAPACK_LIB=""
+if [[ "$OS" == "Darwin" ]]; then
+    for candidate in /opt/homebrew/opt/scalapack/lib/libscalapack.dylib \
+                     /usr/local/opt/scalapack/lib/libscalapack.dylib; do
+        [[ -f "$candidate" ]] && SCALAPACK_LIB="$candidate" && break
+    done
+else
+    for candidate in /usr/lib/x86_64-linux-gnu/libscalapack-openmpi.so \
+                     /usr/lib/x86_64-linux-gnu/libscalapack.so \
+                     /usr/lib/aarch64-linux-gnu/libscalapack-openmpi.so \
+                     /usr/lib/aarch64-linux-gnu/libscalapack.so \
+                     /usr/lib/libscalapack.so \
+                     /usr/local/lib/libscalapack.so; do
+        [[ -f "$candidate" ]] && SCALAPACK_LIB="$candidate" && break
+    done
+fi
+
+if [[ -n "$SCALAPACK_LIB" ]]; then
+    echo ""
+    echo "--- Running BLACS tests (single process, m=8 n=8) ---"
+    echo "Using ScaLAPACK: ${SCALAPACK_LIB}"
+    BLACS_OUTPUT="${REPO_ROOT}/test/blacs_regression_output.csv"
+
+    "${TESTER}" \
+        --routine blacs \
+        --sym-prefix d \
+        --lib "${SCALAPACK_LIB}" \
+        --conv-lib "${CONV_LIB}" \
+        --typesize 8 \
+        --m 8 --n 8 \
+        --format csv \
+        2>&1 | tee "${BLACS_OUTPUT}"
+
+    cat "${BLACS_OUTPUT}" >> "${OUTPUT_FILE}"
+else
+    echo ""
+    echo "--- Skipping BLACS tests (ScaLAPACK not found) ---"
+fi
+
+# ---------------------------------------------------------------------------
 # Step 4: Parse CSV output and check thresholds
 # ---------------------------------------------------------------------------
 echo ""
@@ -258,7 +300,16 @@ while IFS= read -r line; do
 
     total=$((total + 1))
 
-    if [[ "$field5" == "true" || "$field5" == "false" ]]; then
+    # BLACS lines: routine starts with BLACS_, CSV: routine,params,passed,max_error,mismatches
+    if [[ "$routine" == BLACS_* ]]; then
+        blacs_passed=$(echo "$line" | cut -d',' -f3)
+        if [[ "$blacs_passed" != "true" ]]; then
+            fail=$((fail + 1))
+            fail_details="${fail_details}  FAIL: ${line}\n"
+        else
+            pass=$((pass + 1))
+        fi
+    elif [[ "$field5" == "true" || "$field5" == "false" ]]; then
         # BLAS line
         max_rel=$(echo "$line" | cut -d',' -f3)
 

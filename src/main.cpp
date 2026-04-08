@@ -7,6 +7,7 @@
 #include "lapack/solvers.h"
 #include "lapack/eigenvalues.h"
 #include "lapack/auxiliary.h"
+#include "blacs/blacs.h"
 
 #include "../third_party/CLI11.hpp"
 
@@ -162,6 +163,16 @@ static const RoutineEntry routines[] = {
     {"lanhe",  nullptr, "clapack_aux",  "Hermitian matrix norm",          "||A||_herm",                test_lanhe},
     {"clacpy", "lacpy", "clapack_aux",  "Complex matrix copy",            "B = A",                     test_clacpy},
     {"claswp", "laswp", "clapack_aux",  "Complex row permutations",       "P*A",                       test_claswp},
+    // BLACS Context
+    {"blacs_setup",  "blacs_pinfo", "blacs_ctx",     "BLACS context lifecycle",  "PINFO/GRIDINIT/GRIDEXIT",  test_blacs_setup},
+    // BLACS Point-to-Point
+    {"blacs_gesd2d", "gesd2d",      "blacs_p2p",     "BLACS point-to-point",     "xGESD2D/xGERV2D",         test_blacs_gesd2d},
+    // BLACS Broadcast
+    {"blacs_gebs2d", "gebs2d",      "blacs_bcast",   "BLACS broadcast",          "xGEBS2D/xGEBR2D",         test_blacs_gebs2d},
+    // BLACS Combine
+    {"blacs_gsum2d", "gsum2d",      "blacs_combine", "BLACS global sum",         "xGSUM2D",                  test_blacs_gsum2d},
+    {"blacs_gamx2d", "gamx2d",      "blacs_combine", "BLACS global max",         "xGAMX2D",                  test_blacs_gamx2d},
+    {"blacs_gamn2d", "gamn2d",      "blacs_combine", "BLACS global min",         "xGAMN2D",                  test_blacs_gamn2d},
 };
 
 static constexpr int num_routines = sizeof(routines) / sizeof(routines[0]);
@@ -188,6 +199,9 @@ static std::string derive_sym(const std::string &prefix, const RoutineEntry &r) 
         if (prefix == "z") return "zdscal_";
         return prefix + "scal_";
     }
+    // BLACS context routines: no type prefix, just fortran_name + "_"
+    if (r.fortran_name && std::strncmp(r.fortran_name, "blacs_", 6) == 0)
+        return std::string(r.fortran_name) + "_";
     return prefix + base + "_";
 }
 
@@ -293,6 +307,14 @@ int main(int argc, char **argv) {
                     std::printf("Complex LAPACK Eigenvalue/SVD:\n");
                 else if (std::strcmp(cur_cat, "clapack_aux") == 0)
                     std::printf("Complex LAPACK Auxiliary:\n");
+                else if (std::strcmp(cur_cat, "blacs_ctx") == 0)
+                    std::printf("BLACS Context:\n");
+                else if (std::strcmp(cur_cat, "blacs_p2p") == 0)
+                    std::printf("BLACS Point-to-Point:\n");
+                else if (std::strcmp(cur_cat, "blacs_bcast") == 0)
+                    std::printf("BLACS Broadcast:\n");
+                else if (std::strcmp(cur_cat, "blacs_combine") == 0)
+                    std::printf("BLACS Combine:\n");
             }
             std::printf("  %-8s %-35s %s\n", r.name, r.description, r.formula);
         }
@@ -378,7 +400,10 @@ int main(int argc, char **argv) {
                      routine_name == "lapack_aux" ||
                      routine_name == "clapack" || routine_name == "clapack_fact" ||
                      routine_name == "clapack_solve" || routine_name == "clapack_eig" ||
-                     routine_name == "clapack_aux");
+                     routine_name == "clapack_aux" ||
+                     routine_name == "blacs" || routine_name == "blacs_ctx" ||
+                     routine_name == "blacs_p2p" || routine_name == "blacs_bcast" ||
+                     routine_name == "blacs_combine");
 
     if (is_batch && sym_prefix.empty() && sym_name.empty()) {
         std::fprintf(stderr, "Error: batch mode requires --sym-prefix (or --sym for single routine)\n");
@@ -398,6 +423,10 @@ int main(int argc, char **argv) {
                 else if (routine_name == "clapack" &&
                          std::strncmp(r.category, "clapack_", 8) == 0)
                     ; /* match */
+                /* "blacs" matches all blacs_* categories */
+                else if (routine_name == "blacs" &&
+                         std::strncmp(r.category, "blacs_", 6) == 0)
+                    ; /* match */
                 else
                     continue;
             }
@@ -405,6 +434,12 @@ int main(int argc, char **argv) {
             if (!ctx.complex_mode &&
                 (std::strncmp(r.category, "cblas", 5) == 0 ||
                  std::strncmp(r.category, "clapack_", 8) == 0))
+                continue;
+            /* Skip BLACS categories unless explicitly requested.
+               BLACS requires a ScaLAPACK library, not a BLAS/LAPACK library. */
+            if (std::strncmp(r.category, "blacs_", 6) == 0 &&
+                routine_name != "blacs" &&
+                std::strncmp(routine_name.c_str(), "blacs_", 6) != 0)
                 continue;
             std::string sym = sym_prefix.empty() ? sym_name : derive_sym(sym_prefix, r);
             run_routine(r, ctx, lib, sym, params, format);

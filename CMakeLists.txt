@@ -163,6 +163,15 @@ set(CLAPACK_AUX_SOURCES
     src/lapack/auxiliary/claswp.cpp
 )
 
+set(BLACS_SOURCES
+    src/blacs/context/blacs_setup.cpp
+    src/blacs/p2p/blacs_gesd2d.cpp
+    src/blacs/broadcast/blacs_gebs2d.cpp
+    src/blacs/combine/blacs_gsum2d.cpp
+    src/blacs/combine/blacs_gamx2d.cpp
+    src/blacs/combine/blacs_gamn2d.cpp
+)
+
 add_executable(linalg_tester
     src/main.cpp
     ${CORE_SOURCES}
@@ -177,6 +186,7 @@ add_executable(linalg_tester
     ${CLAPACK_SOLVE_SOURCES}
     ${CLAPACK_EIG_SOURCES}
     ${CLAPACK_AUX_SOURCES}
+    ${BLACS_SOURCES}
 )
 
 target_link_libraries(linalg_tester PRIVATE PkgConfig::GMP PkgConfig::MPFR)

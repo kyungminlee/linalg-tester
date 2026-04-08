@@ -35,9 +35,10 @@
 - [ ] **Verification:** Implement global-to-local and local-to-global MPFR gather/scatter for error computation.
 
 ## 7. BLACS Support (NEW)
-- [ ] **Infrastructure:** Wrappers for context creation, process grid management (`BLACS_GRIDINIT`, `BLACS_GRIDEXIT`).
-- [ ] **Communication:** Point-to-point (`GESD2D`/`GERV2D`) and broadcast (`GEBS2D`/`GEBR2D`) verification.
-- [ ] **Topology:** Test different process topologies (1D row/column, 2D square/rectangular).
+- [x] **Infrastructure:** Wrappers for context creation, process grid management (`BLACS_GRIDINIT`, `BLACS_GRIDEXIT`).
+- [x] **Communication:** Point-to-point (`GESD2D`/`GERV2D`) and broadcast (`GEBS2D`/`GEBR2D`) verification.
+- [x] **Topology:** Test different process topologies (1D row/column, 2D square/rectangular).
+- [x] **Verification:** All 334 regression tests pass (328 BLAS/LAPACK + 6 BLACS).
 
 ## 8. ScaLAPACK Support (NEW)
 - [ ] **Infrastructure:** Global-to-local coordinate mapping (`INDXG2L`, `INDXG2P`).
