@@ -170,6 +170,12 @@ set(PBLAS_SOURCES
     src/pblas/level3/psyrk.cpp
     src/pblas/level3/psyr2k.cpp
     src/pblas/level3/ptrmm.cpp
+    src/pblas/level3/phemm.cpp
+    src/pblas/level3/pherk.cpp
+    src/pblas/level3/pher2k.cpp
+    src/pblas/level3/ptran.cpp
+    src/pblas/level3/ptranc.cpp
+    src/pblas/level3/ptranu.cpp
     src/pblas/level2/pgemv.cpp
     src/pblas/level2/psymv.cpp
     src/pblas/level2/ptrmv.cpp
@@ -177,6 +183,11 @@ set(PBLAS_SOURCES
     src/pblas/level2/pger.cpp
     src/pblas/level2/psyr.cpp
     src/pblas/level2/psyr2.cpp
+    src/pblas/level2/phemv.cpp
+    src/pblas/level2/pgeru.cpp
+    src/pblas/level2/pgerc.cpp
+    src/pblas/level2/pher.cpp
+    src/pblas/level2/pher2.cpp
     src/pblas/level1/pswap.cpp
     src/pblas/level1/pscal.cpp
     src/pblas/level1/pcopy.cpp
@@ -184,12 +195,17 @@ set(PBLAS_SOURCES
     src/pblas/level1/pdot.cpp
     src/pblas/level1/pnrm2.cpp
     src/pblas/level1/pasum.cpp
+    src/pblas/level1/pamax.cpp
+    src/pblas/level1/pdotc.cpp
+    src/pblas/level1/pdotu.cpp
 )
 
 set(BLACS_SOURCES
     src/blacs/context/blacs_setup.cpp
     src/blacs/p2p/blacs_gesd2d.cpp
+    src/blacs/p2p/blacs_trsd2d.cpp
     src/blacs/broadcast/blacs_gebs2d.cpp
+    src/blacs/broadcast/blacs_trbs2d.cpp
     src/blacs/combine/blacs_gsum2d.cpp
     src/blacs/combine/blacs_gamx2d.cpp
     src/blacs/combine/blacs_gamn2d.cpp

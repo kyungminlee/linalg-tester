@@ -286,6 +286,37 @@ if [[ -n "$SCALAPACK_LIB" ]]; then
         2>&1 | tee "${PBLAS_OUTPUT}"
 
     cat "${PBLAS_OUTPUT}" >> "${OUTPUT_FILE}"
+
+    # Complex PBLAS tests
+    echo ""
+    echo "--- Running complex PBLAS tests (cpblas3/cpblas2/cpblas1, m=8 n=8 k=4) ---"
+    CPBLAS_OUTPUT="${REPO_ROOT}/test/cpblas_regression_output.csv"
+
+    COMPLEX_ABI="hidden"
+    case "$OS" in
+        Darwin)
+            ARCH=$(uname -m)
+            if [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]]; then
+                COMPLEX_ABI="register"
+            fi
+            ;;
+    esac
+
+    for cat in cpblas3 cpblas2 cpblas1; do
+        "${TESTER}" \
+            --complex \
+            --routine "$cat" \
+            --sym-prefix z \
+            --lib "${SCALAPACK_LIB}" \
+            --conv-lib "${COMPLEX_CONV_LIB}" \
+            --typesize 16 \
+            --m 8 --n 8 --k 4 \
+            --complex-return-abi "${COMPLEX_ABI}" \
+            --format csv \
+            2>&1
+    done | tee "${CPBLAS_OUTPUT}"
+
+    cat "${CPBLAS_OUTPUT}" >> "${OUTPUT_FILE}"
 else
     echo ""
     echo "--- Skipping PBLAS tests (ScaLAPACK not found) ---"

@@ -7,6 +7,7 @@
 
 #include "../blacs/blacs_common.h"
 #include "../core/mpfr_types.h"
+#include "../core/mpfr_complex_types.h"
 #include "../core/tester_ctx.h"
 
 #include <algorithm>
@@ -187,6 +188,55 @@ inline void extract_local_mpfr_sym(MpfrMatrix &local,
                 mpfr_set(local.at(il, jl), global_ref.at(ig, jg), MPFR_RNDN);
             else
                 mpfr_set(local.at(il, jl), global_in.at(ig, jg), MPFR_RNDN);
+        }
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Complex variants of extract functions                               */
+/* ------------------------------------------------------------------ */
+
+inline void extract_local_mpfr_complex(MpfrComplexMatrix &local,
+                                        const MpfrComplexMatrix &global,
+                                        int m, int n, int mb, int nb,
+                                        int myrow, int mycol,
+                                        int nprow, int npcol)
+{
+    int loc_m = numroc(m, mb, myrow, 0, nprow);
+    int loc_n = numroc(n, nb, mycol, 0, npcol);
+
+    for (int jl = 0; jl < loc_n; ++jl) {
+        int jg = indxl2g(jl, nb, mycol, 0, npcol);
+        for (int il = 0; il < loc_m; ++il) {
+            int ig = indxl2g(il, mb, myrow, 0, nprow);
+            mpfr_set(local.re(il, jl), global.re(ig, jg), MPFR_RNDN);
+            mpfr_set(local.im(il, jl), global.im(ig, jg), MPFR_RNDN);
+        }
+    }
+}
+
+/* Complex symmetric triangle extraction (for PHERK, PHER2K).
+   uplo triangle from global_ref, opposite from global_in. */
+inline void extract_local_mpfr_complex_herm(MpfrComplexMatrix &local,
+                                             const MpfrComplexMatrix &global_ref,
+                                             const MpfrComplexMatrix &global_in,
+                                             int n, int mb, int nb,
+                                             int myrow, int mycol,
+                                             int nprow, int npcol,
+                                             char uplo)
+{
+    int loc_m = numroc(n, mb, myrow, 0, nprow);
+    int loc_n = numroc(n, nb, mycol, 0, npcol);
+
+    for (int jl = 0; jl < loc_n; ++jl) {
+        int jg = indxl2g(jl, nb, mycol, 0, npcol);
+        for (int il = 0; il < loc_m; ++il) {
+            int ig = indxl2g(il, mb, myrow, 0, nprow);
+            const MpfrComplexMatrix &src =
+                ((uplo == 'U' && ig <= jg) || (uplo == 'L' && ig >= jg))
+                ? global_ref : global_in;
+            mpfr_set(local.re(il, jl), src.re(ig, jg), MPFR_RNDN);
+            mpfr_set(local.im(il, jl), src.im(ig, jg), MPFR_RNDN);
         }
     }
 }

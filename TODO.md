@@ -33,13 +33,13 @@
 - [x] **Generators:** Implement distributed matrix generators that partition MPFR reference matrices across the process grid.
 - [x] **Testers:** Add test drivers for core PBLAS routines (P_GEMM, P_TRSM, etc.) using MPI-aware verification.
 - [x] **Verification:** Implement global-to-local and local-to-global MPFR gather/scatter for error computation.
-- [x] **Verification:** All 414 regression tests pass (328 BLAS/LAPACK + 6 BLACS + 80 PBLAS L3/L2/L1).
+- [x] **Verification:** All 442 regression tests pass (328 BLAS/LAPACK + 8 BLACS + 106 PBLAS real+complex).
 
 ## 7. BLACS Support (NEW)
 - [x] **Infrastructure:** Wrappers for context creation, process grid management (`BLACS_GRIDINIT`, `BLACS_GRIDEXIT`).
 - [x] **Communication:** Point-to-point (`GESD2D`/`GERV2D`) and broadcast (`GEBS2D`/`GEBR2D`) verification.
 - [x] **Topology:** Test different process topologies (1D row/column, 2D square/rectangular).
-- [x] **Verification:** All 334 regression tests pass (328 BLAS/LAPACK + 6 BLACS).
+- [x] **Verification:** All 442 regression tests pass (328 BLAS/LAPACK + 8 BLACS + 106 PBLAS).
 
 ## 8. ScaLAPACK Support (NEW)
 - [ ] **Infrastructure:** Global-to-local coordinate mapping (`INDXG2L`, `INDXG2P`).
