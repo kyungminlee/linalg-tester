@@ -1,5 +1,6 @@
 #include "generators.h"
 #include "mpfr_lapack_utils.h"
+#include "mpfr_lapack_complex_utils.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -700,6 +701,56 @@ void *gen_positive_definite_array(int n,
     for (int j = 0; j < n; ++j)
         for (int i = 0; i < n; ++i)
             from_mpfr(arr + IDX(i, j, n) * typesize, A.at(i, j), MPFR_RNDN);
+
+    std::free(R_raw);
+    return arr;
+}
+
+/* ------------------------------------------------------------------ */
+/* gen_hermitian_positive_definite_array                                */
+/* A = R^H R + n*I where R is random complex, ensuring HPD             */
+/* Returns column-major n-by-n matrix in custom format, ld=n           */
+/* ------------------------------------------------------------------ */
+
+void *gen_hermitian_positive_definite_array(int n,
+                                             std::size_t typesize,
+                                             mpfr_to_custom_complex_fn from_mpfr_complex,
+                                             custom_to_mpfr_complex_fn to_mpfr_complex,
+                                             mpfr_prec_t prec,
+                                             unsigned *seed)
+{
+    /* Generate random complex matrix R */
+    void *R_raw = gen_random_complex_array(n * n, typesize, from_mpfr_complex, prec, seed);
+
+    /* Convert to MPFR complex */
+    MpfrComplexMatrix R(n, n, prec);
+    const char *rp = static_cast<const char *>(R_raw);
+    for (int j = 0; j < n; ++j)
+        for (int i = 0; i < n; ++i)
+            to_mpfr_complex(R.re(i, j), R.im(i, j),
+                            rp + IDX(i, j, n) * typesize);
+
+    /* Compute A = R^H * R */
+    MpfrComplexMatrix Rh(n, n, prec);
+    mpfr_complex_mat_adjoint(Rh, R);
+
+    MpfrComplexMatrix A(n, n, prec);
+    mpfr_complex_mat_mul_simple(A, Rh, R);
+
+    /* Add n*I to ensure well-conditioned; set diagonal imaginary to 0 */
+    MpfrScalar nval(prec);
+    mpfr_set_d(nval.get(), static_cast<double>(n), MPFR_RNDN);
+    for (int i = 0; i < n; ++i) {
+        mpfr_add(A.re(i, i), A.re(i, i), nval.get(), MPFR_RNDN);
+        mpfr_set_d(A.im(i, i), 0.0, MPFR_RNDN);
+    }
+
+    /* Convert back to custom format */
+    char *arr = static_cast<char *>(std::malloc(static_cast<std::size_t>(n) * n * typesize));
+    for (int j = 0; j < n; ++j)
+        for (int i = 0; i < n; ++i)
+            from_mpfr_complex(arr + IDX(i, j, n) * typesize,
+                              A.re(i, j), A.im(i, j), MPFR_RNDN);
 
     std::free(R_raw);
     return arr;

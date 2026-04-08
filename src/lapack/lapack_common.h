@@ -66,3 +66,16 @@ inline int query_lwork(const void *work_val, const TesterCtx &ctx)
     ctx.to_mpfr(tmp.get(), work_val);
     return static_cast<int>(mpfr_get_d(tmp.get(), MPFR_RNDN));
 }
+
+/* Complex variant: WORK(1) is complex; optimal LWORK is in its real part */
+inline int query_lwork_complex(const void *work_val, const TesterCtx &ctx)
+{
+    mpfr_t re, im;
+    mpfr_init2(re, ctx.prec);
+    mpfr_init2(im, ctx.prec);
+    ctx.to_mpfr_complex(re, im, work_val);
+    int lwork = static_cast<int>(mpfr_get_d(re, MPFR_RNDN));
+    mpfr_clear(re);
+    mpfr_clear(im);
+    return lwork;
+}

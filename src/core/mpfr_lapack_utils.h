@@ -453,10 +453,12 @@ inline double mpfr_solve_residual(const MpfrMatrix &A,
 
 inline double get_eps(const TesterCtx &ctx)
 {
-    /* Approximate: for IEEE types, eps ~ 2^{-p+1} where p is significand bits */
-    if (ctx.typesize == 4) return 5.96e-8;          /* float: 2^-23 */
-    if (ctx.typesize == 8) return 1.11e-16;          /* double: 2^-52 */
-    if (ctx.typesize == 16) return 9.63e-35;         /* quad: 2^-112 (IEEE) or ~1e-31 (long double 80-bit) */
+    /* Approximate: for IEEE types, eps ~ 2^{-p+1} where p is significand bits.
+       For complex types, eps is determined by the underlying real type. */
+    std::size_t real_size = ctx.complex_mode ? (ctx.typesize / 2) : ctx.typesize;
+    if (real_size == 4) return 5.96e-8;          /* float: 2^-23 */
+    if (real_size == 8) return 1.11e-16;          /* double: 2^-52 */
+    if (real_size == 16) return 9.63e-35;         /* quad: 2^-112 (IEEE) or ~1e-31 (long double 80-bit) */
     /* Conservative default for unknown types */
     return 1.11e-16;
 }

@@ -200,6 +200,32 @@ if [[ -f "$COMPLEX_CONV_LIB" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Step 3c: Run complex LAPACK tests
+# ---------------------------------------------------------------------------
+if [[ -f "$COMPLEX_CONV_LIB" ]]; then
+    echo ""
+    echo "--- Running complex LAPACK tests (clapack_fact/solve/eig/aux, m=8 n=8 k=4) ---"
+    CLAPACK_OUTPUT="${REPO_ROOT}/test/clapack_regression_output.csv"
+
+    for cat in clapack_fact clapack_solve clapack_eig clapack_aux; do
+        "${TESTER}" \
+            --complex \
+            --routine "$cat" \
+            --sym-prefix z \
+            --lib "${OPENBLAS_LIB}" \
+            --conv-lib "${COMPLEX_CONV_LIB}" \
+            --typesize 16 \
+            --m 8 --n 8 --k 4 \
+            --complex-return-abi "${COMPLEX_ABI}" \
+            --format csv \
+            2>&1
+    done | tee "${CLAPACK_OUTPUT}"
+
+    # Append complex LAPACK results to main output for unified checking
+    cat "${CLAPACK_OUTPUT}" >> "${OUTPUT_FILE}"
+fi
+
+# ---------------------------------------------------------------------------
 # Step 4: Parse CSV output and check thresholds
 # ---------------------------------------------------------------------------
 echo ""

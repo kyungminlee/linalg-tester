@@ -27,3 +27,27 @@ void test_lacpy(const TesterCtx &ctx, void *lib, const char *sym,
                 const TestParams &params, const std::string &format);
 void test_laswp(const TesterCtx &ctx, void *lib, const char *sym,
                 const TestParams &params, const std::string &format);
+
+/* Complex LAPACK auxiliary */
+void test_cgetrs(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);
+void test_cgetri(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);
+void test_cpotrs(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);
+void test_cpotri(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);
+void test_ungqr(const TesterCtx &ctx, void *lib, const char *sym,
+                const TestParams &params, const std::string &format);
+void test_unmqr(const TesterCtx &ctx, void *lib, const char *sym,
+                const TestParams &params, const std::string &format);
+void test_cgecon(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);
+void test_clange(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);
+void test_lanhe(const TesterCtx &ctx, void *lib, const char *sym,
+                const TestParams &params, const std::string &format);
+void test_clacpy(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);
+void test_claswp(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);

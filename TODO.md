@@ -10,17 +10,41 @@
 - [x] **NaN/Inf Handling:** Implement explicit NaN/Inf comparison logic in `src/core/error_metrics.cpp` to verify that NaN/Inf propagate correctly.
 - [x] **Zero Reference:** Report absolute error separately when the reference value is zero but the computed value is nonzero.
 
-## 3. Complex Number Support (Phase 5 Missing)
+## 3. Complex Number Support (Phase 5)
 - [x] **Infrastructure:** Add `MpfrComplexMatrix` and complex arithmetic helpers.
 - [x] **Conversion:** Update conversion library API to export `custom_to_mpfr_complex` and `mpfr_to_custom_complex`.
-- [x] **Routines:** Add complex-only BLAS routines (HEMM, HERK, HER2K, etc.) to the dispatch table.
+- [x] **BLAS Routines:** Add complex-only BLAS routines (HEMM, HERK, HER2K, etc.) to the dispatch table.
 - [x] **Level 1 ABI:** Handle platform-dependent complex return value conventions (e.g., hidden first argument).
 
-## 4. LAPACK Infrastructure (Phase 6+ Gaps)
+## 4. Complex LAPACK Support (NEW)
+- [x] **Infrastructure:** Implement complex variants of LAPACK utilities in `src/core/mpfr_lapack_complex_utils.h`.
+- [x] **Generators:** Add `gen_hermitian_positive_definite_array` and fix `get_eps` for complex types.
+- [x] **Testers:** Add 33 complex LAPACK test drivers as separate files (7 factorizations, 7 solvers, 8 eigenvalue/SVD, 11 auxiliary).
+- [x] **Verification:** All 328 regression tests pass (237 real + 32 complex BLAS + 59 complex LAPACK).
+
+## 5. LAPACK Infrastructure (Phase 6+ Gaps)
 - [x] **Reporting Refactor:** Replace the `ErrorResult` hack in `src/lapack/lapack_common.h` with a proper `report_lapack_result` that displays residuals and orthogonality correctly in all formats (Text, JSON, CSV).
 - [x] **Structural Verification:** Implement checks for matrix structure (e.g., unit lower triangular L in GETRF, upper triangular R in GEQRF).
 - [x] **Generator Relocation:** Move `gen_positive_definite_array` from `src/core/mpfr_lapack_utils.h` to `src/core/generators.cpp`.
 
-## 5. Build & CI
+## 6. PBLAS Support (NEW)
+- [ ] **Infrastructure:** Add support for ScaLAPACK-style 2D block-cyclic data distribution.
+- [ ] **Context:** Implement `PblasCtx` to handle BLACS context, process grid (M x N), and block sizes (MB, NB).
+- [ ] **Generators:** Implement distributed matrix generators that partition MPFR reference matrices across the process grid.
+- [ ] **Testers:** Add test drivers for core PBLAS routines (P_GEMM, P_TRSM, etc.) using MPI-aware verification.
+- [ ] **Verification:** Implement global-to-local and local-to-global MPFR gather/scatter for error computation.
+
+## 7. BLACS Support (NEW)
+- [ ] **Infrastructure:** Wrappers for context creation, process grid management (`BLACS_GRIDINIT`, `BLACS_GRIDEXIT`).
+- [ ] **Communication:** Point-to-point (`GESD2D`/`GERV2D`) and broadcast (`GEBS2D`/`GEBR2D`) verification.
+- [ ] **Topology:** Test different process topologies (1D row/column, 2D square/rectangular).
+
+## 8. ScaLAPACK Support (NEW)
+- [ ] **Infrastructure:** Global-to-local coordinate mapping (`INDXG2L`, `INDXG2P`).
+- [ ] **Routines:** Implement test drivers for ScaLAPACK factorizations (`P_GETRF`, `P_POTRF`) and solvers (`P_GESV`).
+- [ ] **Verification:** Distributed residual computation using MPFR references gathered from the process grid.
+- [ ] **Redistribution:** Test matrix redistribution routines (`P_GEMR2D`).
+
+## 9. Build & CI
 - [x] **Regression Tests:** Add an automated regression test script (`test/run_regression.sh`) that verifies all routines against a reference BLAS/LAPACK.
 - [x] **CI Pipeline:** Set up a GitHub Actions pipeline to build and run the regression tests on Linux.

@@ -118,6 +118,51 @@ set(LAPACK_AUX_SOURCES
     src/lapack/auxiliary/laswp.cpp
 )
 
+set(CLAPACK_FACT_SOURCES
+    src/lapack/factorizations/cgetrf.cpp
+    src/lapack/factorizations/cpotrf.cpp
+    src/lapack/factorizations/cgeqrf.cpp
+    src/lapack/factorizations/cgelqf.cpp
+    src/lapack/factorizations/cgebrd.cpp
+    src/lapack/factorizations/hetrf.cpp
+    src/lapack/factorizations/hetrd.cpp
+)
+
+set(CLAPACK_SOLVE_SOURCES
+    src/lapack/solvers/cgesv.cpp
+    src/lapack/solvers/cposv.cpp
+    src/lapack/solvers/cgbsv.cpp
+    src/lapack/solvers/cgtsv.cpp
+    src/lapack/solvers/cgels.cpp
+    src/lapack/solvers/cgelsd.cpp
+    src/lapack/solvers/hesv.cpp
+)
+
+set(CLAPACK_EIG_SOURCES
+    src/lapack/eigenvalues/heev.cpp
+    src/lapack/eigenvalues/heevd.cpp
+    src/lapack/eigenvalues/heevr.cpp
+    src/lapack/eigenvalues/hegv.cpp
+    src/lapack/eigenvalues/cgesvd.cpp
+    src/lapack/eigenvalues/cgesdd.cpp
+    src/lapack/eigenvalues/cgeev.cpp
+    src/lapack/eigenvalues/cgees.cpp
+)
+
+set(CLAPACK_AUX_SOURCES
+    src/lapack/auxiliary/cgetrs.cpp
+    src/lapack/auxiliary/cgetri.cpp
+    src/lapack/auxiliary/cpotrs.cpp
+    src/lapack/auxiliary/cpotri.cpp
+    src/lapack/auxiliary/ungqr.cpp
+    src/lapack/auxiliary/unmqr.cpp
+    src/lapack/auxiliary/cgecon.cpp
+    src/lapack/auxiliary/clange.cpp
+    src/lapack/auxiliary/lanhe.cpp
+    src/lapack/auxiliary/clacpy.cpp
+    src/lapack/auxiliary/claswp.cpp
+)
+
 add_executable(linalg_tester
     src/main.cpp
     ${CORE_SOURCES}
@@ -128,6 +173,10 @@ add_executable(linalg_tester
     ${LAPACK_SOLVE_SOURCES}
     ${LAPACK_EIG_SOURCES}
     ${LAPACK_AUX_SOURCES}
+    ${CLAPACK_FACT_SOURCES}
+    ${CLAPACK_SOLVE_SOURCES}
+    ${CLAPACK_EIG_SOURCES}
+    ${CLAPACK_AUX_SOURCES}
 )
 
 target_link_libraries(linalg_tester PRIVATE PkgConfig::GMP PkgConfig::MPFR)

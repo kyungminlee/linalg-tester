@@ -24,6 +24,7 @@
 
 struct RoutineEntry {
     const char *name;
+    const char *fortran_name;  // base name for symbol derivation (NULL = use name)
     const char *category;
     const char *description;
     const char *formula;
@@ -32,98 +33,135 @@ struct RoutineEntry {
 
 static const RoutineEntry routines[] = {
     // Level 3
-    {"gemm",  "blas3", "General matrix multiply",     "C = alpha*op(A)*op(B) + beta*C", test_gemm},
-    {"trsm",  "blas3", "Triangular solve",            "op(A)*X = alpha*B",              test_trsm},
-    {"symm",  "blas3", "Symmetric matrix multiply",   "C = alpha*A*B + beta*C",         test_symm},
-    {"syrk",  "blas3", "Symmetric rank-k update",     "C = alpha*A*A^T + beta*C",       test_syrk},
-    {"syr2k", "blas3", "Symmetric rank-2k update",    "C = alpha*A*B^T + alpha*B*A^T + beta*C", test_syr2k},
-    {"trmm",  "blas3", "Triangular matrix multiply",  "B = alpha*op(A)*B",              test_trmm},
+    {"gemm",  nullptr, "blas3", "General matrix multiply",     "C = alpha*op(A)*op(B) + beta*C", test_gemm},
+    {"trsm",  nullptr, "blas3", "Triangular solve",            "op(A)*X = alpha*B",              test_trsm},
+    {"symm",  nullptr, "blas3", "Symmetric matrix multiply",   "C = alpha*A*B + beta*C",         test_symm},
+    {"syrk",  nullptr, "blas3", "Symmetric rank-k update",     "C = alpha*A*A^T + beta*C",       test_syrk},
+    {"syr2k", nullptr, "blas3", "Symmetric rank-2k update",    "C = alpha*A*B^T + alpha*B*A^T + beta*C", test_syr2k},
+    {"trmm",  nullptr, "blas3", "Triangular matrix multiply",  "B = alpha*op(A)*B",              test_trmm},
     // Level 2
-    {"gemv",  "blas2", "General matrix-vector",       "y = alpha*op(A)*x + beta*y",     test_gemv},
-    {"symv",  "blas2", "Symmetric matrix-vector",     "y = alpha*A*x + beta*y",         test_symv},
-    {"trmv",  "blas2", "Triangular matrix-vector",    "x = op(A)*x",                    test_trmv},
-    {"trsv",  "blas2", "Triangular vector solve",     "op(A)*x = b",                    test_trsv},
-    {"ger",   "blas2", "General rank-1 update",       "A = alpha*x*y^T + A",            test_ger},
-    {"syr",   "blas2", "Symmetric rank-1 update",     "A = alpha*x*x^T + A",            test_syr},
-    {"syr2",  "blas2", "Symmetric rank-2 update",     "A = alpha*x*y^T + alpha*y*x^T + A", test_syr2},
-    {"gbmv",  "blas2", "General banded matrix-vector","y = alpha*op(A)*x + beta*y",     test_gbmv},
-    {"sbmv",  "blas2", "Symmetric banded MV",         "y = alpha*A*x + beta*y",         test_sbmv},
-    {"tbmv",  "blas2", "Triangular banded MV",        "x = op(A)*x",                    test_tbmv},
-    {"tbsv",  "blas2", "Triangular banded solve",     "op(A)*x = b",                    test_tbsv},
-    {"spmv",  "blas2", "Symmetric packed MV",         "y = alpha*A*x + beta*y",         test_spmv},
-    {"tpmv",  "blas2", "Triangular packed MV",        "x = op(A)*x",                    test_tpmv},
-    {"tpsv",  "blas2", "Triangular packed solve",     "op(A)*x = b",                    test_tpsv},
-    {"spr",   "blas2", "Symmetric packed rank-1",     "A = alpha*x*x^T + A",            test_spr},
-    {"spr2",  "blas2", "Symmetric packed rank-2",     "A = alpha*x*y^T + alpha*y*x^T + A", test_spr2},
+    {"gemv",  nullptr, "blas2", "General matrix-vector",       "y = alpha*op(A)*x + beta*y",     test_gemv},
+    {"symv",  nullptr, "blas2", "Symmetric matrix-vector",     "y = alpha*A*x + beta*y",         test_symv},
+    {"trmv",  nullptr, "blas2", "Triangular matrix-vector",    "x = op(A)*x",                    test_trmv},
+    {"trsv",  nullptr, "blas2", "Triangular vector solve",     "op(A)*x = b",                    test_trsv},
+    {"ger",   nullptr, "blas2", "General rank-1 update",       "A = alpha*x*y^T + A",            test_ger},
+    {"syr",   nullptr, "blas2", "Symmetric rank-1 update",     "A = alpha*x*x^T + A",            test_syr},
+    {"syr2",  nullptr, "blas2", "Symmetric rank-2 update",     "A = alpha*x*y^T + alpha*y*x^T + A", test_syr2},
+    {"gbmv",  nullptr, "blas2", "General banded matrix-vector","y = alpha*op(A)*x + beta*y",     test_gbmv},
+    {"sbmv",  nullptr, "blas2", "Symmetric banded MV",         "y = alpha*A*x + beta*y",         test_sbmv},
+    {"tbmv",  nullptr, "blas2", "Triangular banded MV",        "x = op(A)*x",                    test_tbmv},
+    {"tbsv",  nullptr, "blas2", "Triangular banded solve",     "op(A)*x = b",                    test_tbsv},
+    {"spmv",  nullptr, "blas2", "Symmetric packed MV",         "y = alpha*A*x + beta*y",         test_spmv},
+    {"tpmv",  nullptr, "blas2", "Triangular packed MV",        "x = op(A)*x",                    test_tpmv},
+    {"tpsv",  nullptr, "blas2", "Triangular packed solve",     "op(A)*x = b",                    test_tpsv},
+    {"spr",   nullptr, "blas2", "Symmetric packed rank-1",     "A = alpha*x*x^T + A",            test_spr},
+    {"spr2",  nullptr, "blas2", "Symmetric packed rank-2",     "A = alpha*x*y^T + alpha*y*x^T + A", test_spr2},
     // Level 1
-    {"rotg",  "blas1", "Rotation generation",         "Generate Givens rotation",       test_rotg},
-    {"rotmg", "blas1", "Modified Givens generation",  "Generate modified Givens",       test_rotmg},
-    {"rot",   "blas1", "Apply rotation",              "[x;y] = [c s;-s c]*[x;y]",      test_rot},
-    {"rotm",  "blas1", "Apply modified Givens",       "Apply modified Givens rotation", test_rotm},
-    {"swap",  "blas1", "Swap vectors",                "x <-> y",                        test_swap},
-    {"scal",  "blas1", "Scale vector",                "x = alpha*x",                    test_scal},
-    {"copy",  "blas1", "Copy vector",                 "y = x",                          test_copy},
-    {"axpy",  "blas1", "Vector addition",             "y = alpha*x + y",                test_axpy},
-    {"dot",   "blas1", "Dot product",                 "x^T * y",                        test_dot},
-    {"nrm2",  "blas1", "Euclidean norm",              "||x||_2",                        test_nrm2},
-    {"asum",  "blas1", "Sum of absolute values",      "sum(|x_i|)",                     test_asum},
-    {"iamax", "blas1", "Index of max absolute value",  "argmax_i(|x_i|)",               test_iamax},
+    {"rotg",  nullptr, "blas1", "Rotation generation",         "Generate Givens rotation",       test_rotg},
+    {"rotmg", nullptr, "blas1", "Modified Givens generation",  "Generate modified Givens",       test_rotmg},
+    {"rot",   nullptr, "blas1", "Apply rotation",              "[x;y] = [c s;-s c]*[x;y]",      test_rot},
+    {"rotm",  nullptr, "blas1", "Apply modified Givens",       "Apply modified Givens rotation", test_rotm},
+    {"swap",  nullptr, "blas1", "Swap vectors",                "x <-> y",                        test_swap},
+    {"scal",  nullptr, "blas1", "Scale vector",                "x = alpha*x",                    test_scal},
+    {"copy",  nullptr, "blas1", "Copy vector",                 "y = x",                          test_copy},
+    {"axpy",  nullptr, "blas1", "Vector addition",             "y = alpha*x + y",                test_axpy},
+    {"dot",   nullptr, "blas1", "Dot product",                 "x^T * y",                        test_dot},
+    {"nrm2",  nullptr, "blas1", "Euclidean norm",              "||x||_2",                        test_nrm2},
+    {"asum",  nullptr, "blas1", "Sum of absolute values",      "sum(|x_i|)",                     test_asum},
+    {"iamax", nullptr, "blas1", "Index of max absolute value",  "argmax_i(|x_i|)",               test_iamax},
     // Complex-only Level 3
-    {"hemm",  "cblas3", "Hermitian matrix multiply",   "C = alpha*A*B + beta*C (A Herm)",           test_hemm},
-    {"herk",  "cblas3", "Hermitian rank-k update",     "C = alpha*A*A^H + beta*C",                  test_herk},
-    {"her2k", "cblas3", "Hermitian rank-2k update",    "C = alpha*A*B^H + conj(alpha)*B*A^H + beta*C", test_her2k},
+    {"hemm",  nullptr, "cblas3", "Hermitian matrix multiply",   "C = alpha*A*B + beta*C (A Herm)",           test_hemm},
+    {"herk",  nullptr, "cblas3", "Hermitian rank-k update",     "C = alpha*A*A^H + beta*C",                  test_herk},
+    {"her2k", nullptr, "cblas3", "Hermitian rank-2k update",    "C = alpha*A*B^H + conj(alpha)*B*A^H + beta*C", test_her2k},
     // Complex-only Level 2
-    {"hemv",  "cblas2", "Hermitian matrix-vector",     "y = alpha*A*x + beta*y (A Herm)",            test_hemv},
-    {"hbmv",  "cblas2", "Hermitian banded MV",         "y = alpha*A*x + beta*y (A Herm banded)",     test_hbmv},
-    {"hpmv",  "cblas2", "Hermitian packed MV",         "y = alpha*A*x + beta*y (A Herm packed)",     test_hpmv},
-    {"geru",  "cblas2", "Unconjugated rank-1 update",  "A = alpha*x*y^T + A",                       test_geru},
-    {"gerc",  "cblas2", "Conjugated rank-1 update",    "A = alpha*x*conj(y)^T + A",                 test_gerc},
-    {"her",   "cblas2", "Hermitian rank-1 update",     "A = alpha*x*conj(x)^T + A (alpha real)",    test_her},
-    {"hpr",   "cblas2", "Hermitian packed rank-1",     "A = alpha*x*conj(x)^T + A (packed)",        test_hpr},
-    {"her2",  "cblas2", "Hermitian rank-2 update",     "A = alpha*x*conj(y)^T + conj(alpha)*y*conj(x)^T + A", test_her2},
-    {"hpr2",  "cblas2", "Hermitian packed rank-2",     "A = alpha*x*conj(y)^T + conj(alpha)*y*conj(x)^T + A", test_hpr2},
+    {"hemv",  nullptr, "cblas2", "Hermitian matrix-vector",     "y = alpha*A*x + beta*y (A Herm)",            test_hemv},
+    {"hbmv",  nullptr, "cblas2", "Hermitian banded MV",         "y = alpha*A*x + beta*y (A Herm banded)",     test_hbmv},
+    {"hpmv",  nullptr, "cblas2", "Hermitian packed MV",         "y = alpha*A*x + beta*y (A Herm packed)",     test_hpmv},
+    {"geru",  nullptr, "cblas2", "Unconjugated rank-1 update",  "A = alpha*x*y^T + A",                       test_geru},
+    {"gerc",  nullptr, "cblas2", "Conjugated rank-1 update",    "A = alpha*x*conj(y)^T + A",                 test_gerc},
+    {"her",   nullptr, "cblas2", "Hermitian rank-1 update",     "A = alpha*x*conj(x)^T + A (alpha real)",    test_her},
+    {"hpr",   nullptr, "cblas2", "Hermitian packed rank-1",     "A = alpha*x*conj(x)^T + A (packed)",        test_hpr},
+    {"her2",  nullptr, "cblas2", "Hermitian rank-2 update",     "A = alpha*x*conj(y)^T + conj(alpha)*y*conj(x)^T + A", test_her2},
+    {"hpr2",  nullptr, "cblas2", "Hermitian packed rank-2",     "A = alpha*x*conj(y)^T + conj(alpha)*y*conj(x)^T + A", test_hpr2},
     // Complex-only Level 1
-    {"dotc",   "cblas1", "Conjugated dot product",     "conj(x)^T * y",                             test_dotc},
-    {"dotu",   "cblas1", "Unconjugated dot product",   "x^T * y (no conjugation)",                  test_dotu},
-    {"crot",   "cblas1", "Real rotation of complex",   "[x;y] = [c s;-s c]*[x;y] (c,s real)",      test_crot},
-    {"crscal", "cblas1", "Real scale of complex",      "x = alpha*x (alpha real)",                  test_crscal},
+    {"dotc",   nullptr, "cblas1", "Conjugated dot product",     "conj(x)^T * y",                             test_dotc},
+    {"dotu",   nullptr, "cblas1", "Unconjugated dot product",   "x^T * y (no conjugation)",                  test_dotu},
+    {"crot",   nullptr, "cblas1", "Real rotation of complex",   "[x;y] = [c s;-s c]*[x;y] (c,s real)",      test_crot},
+    {"crscal", nullptr, "cblas1", "Real scale of complex",      "x = alpha*x (alpha real)",                  test_crscal},
     // LAPACK Factorizations
-    {"getrf", "lapack_fact", "LU factorization",             "PA = LU",                        test_getrf},
-    {"potrf", "lapack_fact", "Cholesky factorization",       "A = LL^T",                       test_potrf},
-    {"sytrf", "lapack_fact", "Symmetric LDL^T",              "A = LDL^T (Bunch-Kaufman)",      test_sytrf},
-    {"geqrf", "lapack_fact", "QR factorization",             "A = QR",                         test_geqrf},
-    {"gelqf", "lapack_fact", "LQ factorization",             "A = LQ",                         test_gelqf},
-    {"gebrd", "lapack_fact", "Bidiagonal reduction",         "A = U*B*V^T",                    test_gebrd},
-    {"sytrd", "lapack_fact", "Tridiagonal reduction",        "A = Q*T*Q^T",                    test_sytrd},
+    {"getrf", nullptr, "lapack_fact", "LU factorization",             "PA = LU",                        test_getrf},
+    {"potrf", nullptr, "lapack_fact", "Cholesky factorization",       "A = LL^T",                       test_potrf},
+    {"sytrf", nullptr, "lapack_fact", "Symmetric LDL^T",              "A = LDL^T (Bunch-Kaufman)",      test_sytrf},
+    {"geqrf", nullptr, "lapack_fact", "QR factorization",             "A = QR",                         test_geqrf},
+    {"gelqf", nullptr, "lapack_fact", "LQ factorization",             "A = LQ",                         test_gelqf},
+    {"gebrd", nullptr, "lapack_fact", "Bidiagonal reduction",         "A = U*B*V^T",                    test_gebrd},
+    {"sytrd", nullptr, "lapack_fact", "Tridiagonal reduction",        "A = Q*T*Q^T",                    test_sytrd},
     // LAPACK Solvers
-    {"gesv",  "lapack_solve","General solve",                "AX = B (LU)",                    test_gesv},
-    {"posv",  "lapack_solve","SPD solve",                    "AX = B (Cholesky)",              test_posv},
-    {"sysv",  "lapack_solve","Symmetric solve",              "AX = B (LDL^T)",                 test_sysv},
-    {"gbsv",  "lapack_solve","Banded solve",                 "AX = B (banded LU)",             test_gbsv},
-    {"gtsv",  "lapack_solve","Tridiagonal solve",            "AX = B (tridiag)",               test_gtsv},
-    {"gels",  "lapack_solve","Least squares",                "min||Ax-b||_2",                  test_gels},
-    {"gelsd", "lapack_solve","Least squares (SVD)",          "min||Ax-b||_2 (SVD)",            test_gelsd},
+    {"gesv",  nullptr, "lapack_solve","General solve",                "AX = B (LU)",                    test_gesv},
+    {"posv",  nullptr, "lapack_solve","SPD solve",                    "AX = B (Cholesky)",              test_posv},
+    {"sysv",  nullptr, "lapack_solve","Symmetric solve",              "AX = B (LDL^T)",                 test_sysv},
+    {"gbsv",  nullptr, "lapack_solve","Banded solve",                 "AX = B (banded LU)",             test_gbsv},
+    {"gtsv",  nullptr, "lapack_solve","Tridiagonal solve",            "AX = B (tridiag)",               test_gtsv},
+    {"gels",  nullptr, "lapack_solve","Least squares",                "min||Ax-b||_2",                  test_gels},
+    {"gelsd", nullptr, "lapack_solve","Least squares (SVD)",          "min||Ax-b||_2 (SVD)",            test_gelsd},
     // LAPACK Eigenvalue / SVD
-    {"syev",  "lapack_eig",  "Symmetric eigenvalue",         "A = V*D*V^T",                    test_syev},
-    {"syevd", "lapack_eig",  "Symmetric eigenvalue (D&C)",   "A = V*D*V^T",                    test_syevd},
-    {"syevr", "lapack_eig",  "Symmetric eigenvalue (MRRR)",  "A = V*D*V^T",                    test_syevr},
-    {"geev",  "lapack_eig",  "General eigenvalue",           "A*V = V*diag(w)",                test_geev},
-    {"gees",  "lapack_eig",  "Schur decomposition",          "A = V*T*V^T",                    test_gees},
-    {"gesvd", "lapack_eig",  "SVD",                          "A = U*S*V^T",                    test_gesvd},
-    {"gesdd", "lapack_eig",  "SVD (D&C)",                    "A = U*S*V^T",                    test_gesdd},
-    {"sygv",  "lapack_eig",  "Gen. symmetric eigenvalue",    "A*x = lambda*B*x",               test_sygv},
+    {"syev",  nullptr, "lapack_eig",  "Symmetric eigenvalue",         "A = V*D*V^T",                    test_syev},
+    {"syevd", nullptr, "lapack_eig",  "Symmetric eigenvalue (D&C)",   "A = V*D*V^T",                    test_syevd},
+    {"syevr", nullptr, "lapack_eig",  "Symmetric eigenvalue (MRRR)",  "A = V*D*V^T",                    test_syevr},
+    {"geev",  nullptr, "lapack_eig",  "General eigenvalue",           "A*V = V*diag(w)",                test_geev},
+    {"gees",  nullptr, "lapack_eig",  "Schur decomposition",          "A = V*T*V^T",                    test_gees},
+    {"gesvd", nullptr, "lapack_eig",  "SVD",                          "A = U*S*V^T",                    test_gesvd},
+    {"gesdd", nullptr, "lapack_eig",  "SVD (D&C)",                    "A = U*S*V^T",                    test_gesdd},
+    {"sygv",  nullptr, "lapack_eig",  "Gen. symmetric eigenvalue",    "A*x = lambda*B*x",               test_sygv},
     // LAPACK Auxiliary
-    {"getrs", "lapack_aux",  "Solve from LU factors",        "op(A)*X = B",                    test_getrs},
-    {"getri", "lapack_aux",  "Inverse from LU",              "A^{-1}",                         test_getri},
-    {"potrs", "lapack_aux",  "Solve from Cholesky",          "A*X = B",                        test_potrs},
-    {"potri", "lapack_aux",  "Inverse from Cholesky",        "A^{-1}",                         test_potri},
-    {"orgqr", "lapack_aux",  "Generate Q from QR",           "Q from reflectors",              test_orgqr},
-    {"ormqr", "lapack_aux",  "Multiply by Q",                "C = op(Q)*C",                    test_ormqr},
-    {"gecon", "lapack_aux",  "Condition number estimate",    "rcond(A)",                       test_gecon},
-    {"lange", "lapack_aux",  "Matrix norm",                  "||A||",                          test_lange},
-    {"lansy", "lapack_aux",  "Symmetric matrix norm",        "||A||_sym",                      test_lansy},
-    {"lacpy", "lapack_aux",  "Matrix copy",                  "B = A",                          test_lacpy},
-    {"laswp", "lapack_aux",  "Row permutations",             "P*A",                            test_laswp},
+    {"getrs", nullptr, "lapack_aux",  "Solve from LU factors",        "op(A)*X = B",                    test_getrs},
+    {"getri", nullptr, "lapack_aux",  "Inverse from LU",              "A^{-1}",                         test_getri},
+    {"potrs", nullptr, "lapack_aux",  "Solve from Cholesky",          "A*X = B",                        test_potrs},
+    {"potri", nullptr, "lapack_aux",  "Inverse from Cholesky",        "A^{-1}",                         test_potri},
+    {"orgqr", nullptr, "lapack_aux",  "Generate Q from QR",           "Q from reflectors",              test_orgqr},
+    {"ormqr", nullptr, "lapack_aux",  "Multiply by Q",                "C = op(Q)*C",                    test_ormqr},
+    {"gecon", nullptr, "lapack_aux",  "Condition number estimate",    "rcond(A)",                       test_gecon},
+    {"lange", nullptr, "lapack_aux",  "Matrix norm",                  "||A||",                          test_lange},
+    {"lansy", nullptr, "lapack_aux",  "Symmetric matrix norm",        "||A||_sym",                      test_lansy},
+    {"lacpy", nullptr, "lapack_aux",  "Matrix copy",                  "B = A",                          test_lacpy},
+    {"laswp", nullptr, "lapack_aux",  "Row permutations",             "P*A",                            test_laswp},
+    // Complex LAPACK Factorizations
+    {"cgetrf", "getrf", "clapack_fact", "Complex LU factorization",        "PA = LU",                   test_cgetrf},
+    {"cpotrf", "potrf", "clapack_fact", "Complex Cholesky",                "A = LL^H",                  test_cpotrf},
+    {"cgeqrf", "geqrf", "clapack_fact", "Complex QR factorization",        "A = QR",                    test_cgeqrf},
+    {"cgelqf", "gelqf", "clapack_fact", "Complex LQ factorization",        "A = LQ",                    test_cgelqf},
+    {"cgebrd", "gebrd", "clapack_fact", "Complex bidiagonal reduction",    "A = U*B*V^H",               test_cgebrd},
+    {"hetrf",  nullptr, "clapack_fact", "Hermitian LDL^H",                 "A = LDL^H",                 test_hetrf},
+    {"hetrd",  nullptr, "clapack_fact", "Hermitian tridiag reduction",     "A = Q*T*Q^H",               test_hetrd},
+    // Complex LAPACK Solvers
+    {"cgesv",  "gesv",  "clapack_solve","Complex general solve",           "AX = B (LU)",               test_cgesv},
+    {"cposv",  "posv",  "clapack_solve","HPD solve",                       "AX = B (Cholesky)",         test_cposv},
+    {"cgbsv",  "gbsv",  "clapack_solve","Complex banded solve",           "AX = B (banded LU)",        test_cgbsv},
+    {"cgtsv",  "gtsv",  "clapack_solve","Complex tridiagonal solve",      "AX = B (tridiag)",          test_cgtsv},
+    {"cgels",  "gels",  "clapack_solve","Complex least squares",          "min||Ax-b||_2",             test_cgels},
+    {"cgelsd", "gelsd", "clapack_solve","Complex least squares (SVD)",    "min||Ax-b||_2 (SVD)",       test_cgelsd},
+    {"hesv",   nullptr, "clapack_solve","Hermitian solve",                "AX = B (LDL^H)",            test_hesv},
+    // Complex LAPACK Eigenvalue / SVD
+    {"heev",   nullptr, "clapack_eig",  "Hermitian eigenvalue",           "A = V*D*V^H",               test_heev},
+    {"heevd",  nullptr, "clapack_eig",  "Hermitian eigenvalue (D&C)",     "A = V*D*V^H",               test_heevd},
+    {"heevr",  nullptr, "clapack_eig",  "Hermitian eigenvalue (MRRR)",    "A = V*D*V^H",               test_heevr},
+    {"hegv",   nullptr, "clapack_eig",  "Gen. Hermitian eigenvalue",      "A*x = lambda*B*x",          test_hegv},
+    {"cgesvd", "gesvd", "clapack_eig",  "Complex SVD",                    "A = U*S*V^H",               test_cgesvd},
+    {"cgesdd", "gesdd", "clapack_eig",  "Complex SVD (D&C)",              "A = U*S*V^H",               test_cgesdd},
+    {"cgeev",  "geev",  "clapack_eig",  "Complex general eigenvalue",     "A*V = V*diag(w)",           test_cgeev},
+    {"cgees",  "gees",  "clapack_eig",  "Complex Schur decomposition",    "A = V*T*V^H",               test_cgees},
+    // Complex LAPACK Auxiliary
+    {"cgetrs", "getrs", "clapack_aux",  "Complex solve from LU",          "op(A)*X = B",               test_cgetrs},
+    {"cgetri", "getri", "clapack_aux",  "Complex inverse from LU",        "A^{-1}",                    test_cgetri},
+    {"cpotrs", "potrs", "clapack_aux",  "Complex solve from Cholesky",    "A*X = B",                   test_cpotrs},
+    {"cpotri", "potri", "clapack_aux",  "Complex inverse from Cholesky",  "A^{-1}",                    test_cpotri},
+    {"ungqr",  nullptr, "clapack_aux",  "Generate unitary Q from QR",     "Q from reflectors",         test_ungqr},
+    {"unmqr",  nullptr, "clapack_aux",  "Multiply by unitary Q",          "C = op(Q)*C",               test_unmqr},
+    {"cgecon", "gecon", "clapack_aux",  "Complex condition number",       "rcond(A)",                  test_cgecon},
+    {"clange", "lange", "clapack_aux",  "Complex matrix norm",            "||A||",                     test_clange},
+    {"lanhe",  nullptr, "clapack_aux",  "Hermitian matrix norm",          "||A||_herm",                test_lanhe},
+    {"clacpy", "lacpy", "clapack_aux",  "Complex matrix copy",            "B = A",                     test_clacpy},
+    {"claswp", "laswp", "clapack_aux",  "Complex row permutations",       "P*A",                       test_claswp},
 };
 
 static constexpr int num_routines = sizeof(routines) / sizeof(routines[0]);
@@ -132,7 +170,9 @@ static constexpr int num_routines = sizeof(routines) / sizeof(routines[0]);
 // Helpers
 // ---------------------------------------------------------------------------
 
-static std::string derive_sym(const std::string &prefix, const char *routine_name) {
+static std::string derive_sym(const std::string &prefix, const RoutineEntry &r) {
+    const char *routine_name = r.name;
+    const char *base = r.fortran_name ? r.fortran_name : r.name;
     // IAMAX: BLAS convention is i<prefix>amax (e.g., idamax_, isamax_)
     if (std::strcmp(routine_name, "iamax") == 0)
         return "i" + prefix + "amax_";
@@ -148,7 +188,7 @@ static std::string derive_sym(const std::string &prefix, const char *routine_nam
         if (prefix == "z") return "zdscal_";
         return prefix + "scal_";
     }
-    return prefix + routine_name + "_";
+    return prefix + base + "_";
 }
 
 static const RoutineEntry *find_routine(const char *name) {
@@ -245,6 +285,14 @@ int main(int argc, char **argv) {
                     std::printf("Complex BLAS Level 2:\n");
                 else if (std::strcmp(cur_cat, "cblas1") == 0)
                     std::printf("Complex BLAS Level 1:\n");
+                else if (std::strcmp(cur_cat, "clapack_fact") == 0)
+                    std::printf("Complex LAPACK Factorizations:\n");
+                else if (std::strcmp(cur_cat, "clapack_solve") == 0)
+                    std::printf("Complex LAPACK Solvers:\n");
+                else if (std::strcmp(cur_cat, "clapack_eig") == 0)
+                    std::printf("Complex LAPACK Eigenvalue/SVD:\n");
+                else if (std::strcmp(cur_cat, "clapack_aux") == 0)
+                    std::printf("Complex LAPACK Auxiliary:\n");
             }
             std::printf("  %-8s %-35s %s\n", r.name, r.description, r.formula);
         }
@@ -327,7 +375,10 @@ int main(int argc, char **argv) {
                      routine_name == "cblas3" ||
                      routine_name == "lapack" || routine_name == "lapack_fact" ||
                      routine_name == "lapack_solve" || routine_name == "lapack_eig" ||
-                     routine_name == "lapack_aux");
+                     routine_name == "lapack_aux" ||
+                     routine_name == "clapack" || routine_name == "clapack_fact" ||
+                     routine_name == "clapack_solve" || routine_name == "clapack_eig" ||
+                     routine_name == "clapack_aux");
 
     if (is_batch && sym_prefix.empty() && sym_name.empty()) {
         std::fprintf(stderr, "Error: batch mode requires --sym-prefix (or --sym for single routine)\n");
@@ -343,10 +394,19 @@ int main(int argc, char **argv) {
                 if (routine_name == "lapack" &&
                     std::strncmp(r.category, "lapack_", 7) == 0)
                     ; /* match */
+                /* "clapack" matches all clapack_* categories */
+                else if (routine_name == "clapack" &&
+                         std::strncmp(r.category, "clapack_", 8) == 0)
+                    ; /* match */
                 else
                     continue;
             }
-            std::string sym = sym_prefix.empty() ? sym_name : derive_sym(sym_prefix, r.name);
+            /* Skip complex categories when not in complex mode */
+            if (!ctx.complex_mode &&
+                (std::strncmp(r.category, "cblas", 5) == 0 ||
+                 std::strncmp(r.category, "clapack_", 8) == 0))
+                continue;
+            std::string sym = sym_prefix.empty() ? sym_name : derive_sym(sym_prefix, r);
             run_routine(r, ctx, lib, sym, params, format);
         }
     } else {
@@ -360,7 +420,7 @@ int main(int argc, char **argv) {
 
         std::string sym = sym_name;
         if (sym.empty() && !sym_prefix.empty()) {
-            sym = derive_sym(sym_prefix, entry->name);
+            sym = derive_sym(sym_prefix, *entry);
         }
         if (sym.empty()) {
             std::fprintf(stderr, "Error: --sym or --sym-prefix is required\n");

@@ -21,3 +21,21 @@ void test_gesdd(const TesterCtx &ctx, void *lib, const char *sym,
                 const TestParams &params, const std::string &format);
 void test_sygv(const TesterCtx &ctx, void *lib, const char *sym,
                const TestParams &params, const std::string &format);
+
+/* Complex LAPACK eigenvalues/SVD */
+void test_heev(const TesterCtx &ctx, void *lib, const char *sym,
+               const TestParams &params, const std::string &format);
+void test_heevd(const TesterCtx &ctx, void *lib, const char *sym,
+                const TestParams &params, const std::string &format);
+void test_heevr(const TesterCtx &ctx, void *lib, const char *sym,
+                const TestParams &params, const std::string &format);
+void test_hegv(const TesterCtx &ctx, void *lib, const char *sym,
+               const TestParams &params, const std::string &format);
+void test_cgesvd(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);
+void test_cgesdd(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);
+void test_cgeev(const TesterCtx &ctx, void *lib, const char *sym,
+                const TestParams &params, const std::string &format);
+void test_cgees(const TesterCtx &ctx, void *lib, const char *sym,
+                const TestParams &params, const std::string &format);

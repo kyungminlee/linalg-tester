@@ -73,3 +73,8 @@ void *gen_triangular_complex_array(int k, char uplo, char diag,
                                     std::size_t typesize,
                                     mpfr_to_custom_complex_fn from_mpfr_complex,
                                     mpfr_prec_t prec, unsigned *seed);
+
+void *gen_hermitian_positive_definite_array(int n, std::size_t typesize,
+    mpfr_to_custom_complex_fn from_mpfr_complex,
+    custom_to_mpfr_complex_fn to_mpfr_complex,
+    mpfr_prec_t prec, unsigned *seed);
