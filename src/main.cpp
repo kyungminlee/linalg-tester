@@ -68,6 +68,25 @@ static const RoutineEntry routines[] = {
     {"nrm2",  "blas1", "Euclidean norm",              "||x||_2",                        test_nrm2},
     {"asum",  "blas1", "Sum of absolute values",      "sum(|x_i|)",                     test_asum},
     {"iamax", "blas1", "Index of max absolute value",  "argmax_i(|x_i|)",               test_iamax},
+    // Complex-only Level 3
+    {"hemm",  "cblas3", "Hermitian matrix multiply",   "C = alpha*A*B + beta*C (A Herm)",           test_hemm},
+    {"herk",  "cblas3", "Hermitian rank-k update",     "C = alpha*A*A^H + beta*C",                  test_herk},
+    {"her2k", "cblas3", "Hermitian rank-2k update",    "C = alpha*A*B^H + conj(alpha)*B*A^H + beta*C", test_her2k},
+    // Complex-only Level 2
+    {"hemv",  "cblas2", "Hermitian matrix-vector",     "y = alpha*A*x + beta*y (A Herm)",            test_hemv},
+    {"hbmv",  "cblas2", "Hermitian banded MV",         "y = alpha*A*x + beta*y (A Herm banded)",     test_hbmv},
+    {"hpmv",  "cblas2", "Hermitian packed MV",         "y = alpha*A*x + beta*y (A Herm packed)",     test_hpmv},
+    {"geru",  "cblas2", "Unconjugated rank-1 update",  "A = alpha*x*y^T + A",                       test_geru},
+    {"gerc",  "cblas2", "Conjugated rank-1 update",    "A = alpha*x*conj(y)^T + A",                 test_gerc},
+    {"her",   "cblas2", "Hermitian rank-1 update",     "A = alpha*x*conj(x)^T + A (alpha real)",    test_her},
+    {"hpr",   "cblas2", "Hermitian packed rank-1",     "A = alpha*x*conj(x)^T + A (packed)",        test_hpr},
+    {"her2",  "cblas2", "Hermitian rank-2 update",     "A = alpha*x*conj(y)^T + conj(alpha)*y*conj(x)^T + A", test_her2},
+    {"hpr2",  "cblas2", "Hermitian packed rank-2",     "A = alpha*x*conj(y)^T + conj(alpha)*y*conj(x)^T + A", test_hpr2},
+    // Complex-only Level 1
+    {"dotc",   "cblas1", "Conjugated dot product",     "conj(x)^T * y",                             test_dotc},
+    {"dotu",   "cblas1", "Unconjugated dot product",   "x^T * y (no conjugation)",                  test_dotu},
+    {"crot",   "cblas1", "Real rotation of complex",   "[x;y] = [c s;-s c]*[x;y] (c,s real)",      test_crot},
+    {"crscal", "cblas1", "Real scale of complex",      "x = alpha*x (alpha real)",                  test_crscal},
     // LAPACK Factorizations
     {"getrf", "lapack_fact", "LU factorization",             "PA = LU",                        test_getrf},
     {"potrf", "lapack_fact", "Cholesky factorization",       "A = LL^T",                       test_potrf},
@@ -117,6 +136,18 @@ static std::string derive_sym(const std::string &prefix, const char *routine_nam
     // IAMAX: BLAS convention is i<prefix>amax (e.g., idamax_, isamax_)
     if (std::strcmp(routine_name, "iamax") == 0)
         return "i" + prefix + "amax_";
+    // CROT: csrot_/zdrot_ (prefix 'c' -> 'cs', prefix 'z' -> 'zd')
+    if (std::strcmp(routine_name, "crot") == 0) {
+        if (prefix == "c") return "csrot_";
+        if (prefix == "z") return "zdrot_";
+        return prefix + "rot_";
+    }
+    // CRSCAL: csscal_/zdscal_ (prefix 'c' -> 'cs', prefix 'z' -> 'zd')
+    if (std::strcmp(routine_name, "crscal") == 0) {
+        if (prefix == "c") return "csscal_";
+        if (prefix == "z") return "zdscal_";
+        return prefix + "scal_";
+    }
     return prefix + routine_name + "_";
 }
 
@@ -144,6 +175,7 @@ int main(int argc, char **argv) {
     CLI::App app{"linalg-tester: accuracy tester for BLAS/LAPACK"};
 
     bool list_flag = false;
+    bool complex_flag = false;
     std::string routine_name;
     std::string lib_path;
     std::string sym_name;
@@ -159,9 +191,12 @@ int main(int argc, char **argv) {
     int ld_pad = 0;
     double threshold = -1.0;
     std::string format = "text";
+    std::string complex_return_abi_str = "hidden";
 
     app.add_flag("--list", list_flag, "List all supported routines and exit");
-    app.add_option("--routine", routine_name, "Routine name (or all/blas1/blas2/blas3/lapack/lapack_fact/lapack_solve/lapack_eig/lapack_aux)");
+    app.add_flag("--complex", complex_flag, "Enable complex mode");
+    app.add_option("--complex-return-abi", complex_return_abi_str, "Complex return ABI for DOTC/DOTU: hidden or register")->default_val("hidden");
+    app.add_option("--routine", routine_name, "Routine name (or all/blas1/blas2/blas3/cblas1/cblas2/cblas3/lapack/lapack_fact/lapack_solve/lapack_eig/lapack_aux)");
     app.add_option("--lib", lib_path, "Path to shared library under test");
     app.add_option("--sym", sym_name, "Symbol name to test (e.g. dgemm_)");
     app.add_option("--sym-prefix", sym_prefix, "Symbol prefix for batch mode (e.g. d -> dgemm_)");
@@ -204,6 +239,12 @@ int main(int argc, char **argv) {
                     std::printf("LAPACK Eigenvalue/SVD:\n");
                 else if (std::strcmp(cur_cat, "lapack_aux") == 0)
                     std::printf("LAPACK Auxiliary:\n");
+                else if (std::strcmp(cur_cat, "cblas3") == 0)
+                    std::printf("Complex BLAS Level 3:\n");
+                else if (std::strcmp(cur_cat, "cblas2") == 0)
+                    std::printf("Complex BLAS Level 2:\n");
+                else if (std::strcmp(cur_cat, "cblas1") == 0)
+                    std::printf("Complex BLAS Level 1:\n");
             }
             std::printf("  %-8s %-35s %s\n", r.name, r.description, r.formula);
         }
@@ -255,6 +296,18 @@ int main(int argc, char **argv) {
     ctx.to_mpfr = to_mpfr_fn;
     ctx.from_mpfr = from_mpfr_fn;
 
+    if (complex_flag) {
+        ctx.complex_mode = true;
+        ctx.to_mpfr_complex = reinterpret_cast<custom_to_mpfr_complex_fn>(
+            load_sym(conv, "custom_to_mpfr_complex"));
+        ctx.from_mpfr_complex = reinterpret_cast<mpfr_to_custom_complex_fn>(
+            load_sym(conv, "mpfr_to_custom_complex"));
+        if (complex_return_abi_str == "register")
+            ctx.complex_return_abi = ComplexReturnABI::Register;
+        else
+            ctx.complex_return_abi = ComplexReturnABI::Hidden;
+    }
+
     // Build params
     TestParams params;
     params.m = m;
@@ -270,6 +323,8 @@ int main(int argc, char **argv) {
     // Determine which routines to run
     bool is_batch = (routine_name == "all" || routine_name == "blas1" ||
                      routine_name == "blas2" || routine_name == "blas3" ||
+                     routine_name == "cblas1" || routine_name == "cblas2" ||
+                     routine_name == "cblas3" ||
                      routine_name == "lapack" || routine_name == "lapack_fact" ||
                      routine_name == "lapack_solve" || routine_name == "lapack_eig" ||
                      routine_name == "lapack_aux");

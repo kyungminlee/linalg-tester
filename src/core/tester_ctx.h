@@ -5,12 +5,21 @@
 
 extern "C" typedef void (*custom_to_mpfr_fn)(mpfr_t dst, const void *src);
 extern "C" typedef void (*mpfr_to_custom_fn)(void *dst, mpfr_t src, mpfr_rnd_t rnd);
+extern "C" typedef void (*custom_to_mpfr_complex_fn)(mpfr_t re, mpfr_t im, const void *src);
+extern "C" typedef void (*mpfr_to_custom_complex_fn)(void *dst, mpfr_t re, mpfr_t im, mpfr_rnd_t rnd);
+
+enum class ComplexReturnABI { Hidden, Register };
 
 struct TesterCtx {
     mpfr_prec_t prec;
     std::size_t typesize;
     custom_to_mpfr_fn to_mpfr;
     mpfr_to_custom_fn from_mpfr;
+    /* Complex support */
+    bool complex_mode = false;
+    custom_to_mpfr_complex_fn to_mpfr_complex = nullptr;
+    mpfr_to_custom_complex_fn from_mpfr_complex = nullptr;
+    ComplexReturnABI complex_return_abi = ComplexReturnABI::Hidden;
 };
 
 struct ErrorResult {

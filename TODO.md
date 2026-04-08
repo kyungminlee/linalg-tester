@@ -11,10 +11,10 @@
 - [x] **Zero Reference:** Report absolute error separately when the reference value is zero but the computed value is nonzero.
 
 ## 3. Complex Number Support (Phase 5 Missing)
-- [ ] **Infrastructure:** Add `MpfrComplexMatrix` and complex arithmetic helpers.
-- [ ] **Conversion:** Update conversion library API to export `custom_to_mpfr_complex` and `mpfr_to_custom_complex`.
-- [ ] **Routines:** Add complex-only BLAS routines (HEMM, HERK, HER2K, etc.) to the dispatch table.
-- [ ] **Level 1 ABI:** Handle platform-dependent complex return value conventions (e.g., hidden first argument).
+- [x] **Infrastructure:** Add `MpfrComplexMatrix` and complex arithmetic helpers.
+- [x] **Conversion:** Update conversion library API to export `custom_to_mpfr_complex` and `mpfr_to_custom_complex`.
+- [x] **Routines:** Add complex-only BLAS routines (HEMM, HERK, HER2K, etc.) to the dispatch table.
+- [x] **Level 1 ABI:** Handle platform-dependent complex return value conventions (e.g., hidden first argument).
 
 ## 4. LAPACK Infrastructure (Phase 6+ Gaps)
 - [x] **Reporting Refactor:** Replace the `ErrorResult` hack in `src/lapack/lapack_common.h` with a proper `report_lapack_result` that displays residuals and orthogonality correctly in all formats (Text, JSON, CSV).

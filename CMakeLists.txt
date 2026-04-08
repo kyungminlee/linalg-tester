@@ -21,6 +21,9 @@ set(BLAS3_SOURCES
     src/blas/level3/syrk.cpp
     src/blas/level3/syr2k.cpp
     src/blas/level3/trmm.cpp
+    src/blas/level3/hemm.cpp
+    src/blas/level3/herk.cpp
+    src/blas/level3/her2k.cpp
 )
 
 set(BLAS2_SOURCES
@@ -40,6 +43,15 @@ set(BLAS2_SOURCES
     src/blas/level2/tpsv.cpp
     src/blas/level2/spr.cpp
     src/blas/level2/spr2.cpp
+    src/blas/level2/hemv.cpp
+    src/blas/level2/hbmv.cpp
+    src/blas/level2/hpmv.cpp
+    src/blas/level2/geru.cpp
+    src/blas/level2/gerc.cpp
+    src/blas/level2/her.cpp
+    src/blas/level2/hpr.cpp
+    src/blas/level2/her2.cpp
+    src/blas/level2/hpr2.cpp
 )
 
 set(BLAS1_SOURCES
@@ -55,6 +67,10 @@ set(BLAS1_SOURCES
     src/blas/level1/nrm2.cpp
     src/blas/level1/asum.cpp
     src/blas/level1/iamax.cpp
+    src/blas/level1/dotc.cpp
+    src/blas/level1/dotu.cpp
+    src/blas/level1/crot.cpp
+    src/blas/level1/crscal.cpp
 )
 
 set(LAPACK_FACT_SOURCES
@@ -116,3 +132,13 @@ add_executable(linalg_tester
 
 target_link_libraries(linalg_tester PRIVATE PkgConfig::GMP PkgConfig::MPFR)
 target_include_directories(linalg_tester PRIVATE third_party)
+
+# ---------------------------------------------------------------------------
+# Conversion libraries (shared libraries for testing)
+# ---------------------------------------------------------------------------
+
+add_library(double_conv SHARED examples/openblas_double/double_conv.c)
+target_link_libraries(double_conv PRIVATE PkgConfig::GMP PkgConfig::MPFR)
+
+add_library(complex_double_conv SHARED examples/openblas_complex_double/complex_double_conv.c)
+target_link_libraries(complex_double_conv PRIVATE PkgConfig::GMP PkgConfig::MPFR)

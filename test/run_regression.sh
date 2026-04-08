@@ -115,27 +115,19 @@ if [[ ! -x "$TESTER" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 2: Build double_conv shared library
+# Step 2: Use CMake-built conversion libraries
 # ---------------------------------------------------------------------------
 echo ""
-echo "--- Building double_conv.${SHLIB_EXT} ---"
-CONV_LIB="${REPO_ROOT}/test/double_conv.${SHLIB_EXT}"
+echo "--- Using CMake-built conversion libraries ---"
+CONV_LIB="${BUILD_DIR}/libdouble_conv.${SHLIB_EXT}"
+COMPLEX_CONV_LIB="${BUILD_DIR}/libcomplex_double_conv.${SHLIB_EXT}"
 
-MPFR_CFLAGS=$(pkg-config --cflags mpfr 2>/dev/null || true)
-GMP_CFLAGS=$(pkg-config --cflags gmp 2>/dev/null || true)
-MPFR_LIBS=$(pkg-config --libs mpfr 2>/dev/null || echo "-lmpfr")
-GMP_LIBS=$(pkg-config --libs gmp 2>/dev/null || echo "-lgmp")
-CONV_CFLAGS="${MPFR_CFLAGS} ${GMP_CFLAGS}"
-CONV_LIBS="${MPFR_LIBS} ${GMP_LIBS}"
-
-if [[ "$OS" == "Darwin" ]]; then
-    # shellcheck disable=SC2086
-    cc -O2 -shared -fPIC ${CONV_CFLAGS} -o "${CONV_LIB}" "${CONV_SRC}" ${CONV_LIBS}
-else
-    # shellcheck disable=SC2086
-    cc -O2 -shared -fPIC ${CONV_CFLAGS} -o "${CONV_LIB}" "${CONV_SRC}" ${CONV_LIBS}
+if [[ ! -f "$CONV_LIB" ]]; then
+    echo "ERROR: ${CONV_LIB} not found after build." >&2
+    exit 1
 fi
 echo "  -> ${CONV_LIB}"
+echo "  -> ${COMPLEX_CONV_LIB}"
 
 # ---------------------------------------------------------------------------
 # Step 2b: Build gfortran stubs if needed (Linux only)
@@ -169,6 +161,43 @@ OUTPUT_FILE="${REPO_ROOT}/test/regression_output.csv"
     --m 16 --n 16 --k 4 \
     --format csv \
     2>&1 | tee "${OUTPUT_FILE}"
+
+# ---------------------------------------------------------------------------
+# Step 3b: Run complex BLAS tests
+# ---------------------------------------------------------------------------
+if [[ -f "$COMPLEX_CONV_LIB" ]]; then
+    echo ""
+    echo "--- Running complex BLAS tests (cblas3/cblas2/cblas1, m=8 n=8 k=4) ---"
+    COMPLEX_OUTPUT="${REPO_ROOT}/test/complex_regression_output.csv"
+
+    # Determine complex return ABI
+    COMPLEX_ABI="hidden"
+    case "$OS" in
+        Darwin)
+            ARCH=$(uname -m)
+            if [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]]; then
+                COMPLEX_ABI="register"
+            fi
+            ;;
+    esac
+
+    for cat in cblas3 cblas2 cblas1; do
+        "${TESTER}" \
+            --complex \
+            --routine "$cat" \
+            --sym-prefix z \
+            --lib "${OPENBLAS_LIB}" \
+            --conv-lib "${COMPLEX_CONV_LIB}" \
+            --typesize 16 \
+            --m 8 --n 8 --k 4 \
+            --complex-return-abi "${COMPLEX_ABI}" \
+            --format csv \
+            2>&1
+    done | tee "${COMPLEX_OUTPUT}"
+
+    # Append complex results to main output for unified checking
+    cat "${COMPLEX_OUTPUT}" >> "${OUTPUT_FILE}"
+fi
 
 # ---------------------------------------------------------------------------
 # Step 4: Parse CSV output and check thresholds

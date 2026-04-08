@@ -16,3 +16,9 @@ void test_dot(const TesterCtx &ctx, void *lib, const char *sym, const TestParams
 void test_nrm2(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
 void test_asum(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
 void test_iamax(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
+
+/* Complex-only Level 1 */
+void test_dotc(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
+void test_dotu(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
+void test_crot(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
+void test_crscal(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
