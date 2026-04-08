@@ -34,5 +34,6 @@ struct TestParams {
     int kl = 2, ku = 2;
     int incx = 1, incy = 1;
     int ld_pad = 0;
+    int mb = 0, nb = 0;  /* PBLAS block sizes (0 = auto) */
     unsigned seed = 42;
 };

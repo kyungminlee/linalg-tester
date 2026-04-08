@@ -268,6 +268,30 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Step 3e: Run PBLAS tests (if ScaLAPACK is available)
+# ---------------------------------------------------------------------------
+if [[ -n "$SCALAPACK_LIB" ]]; then
+    echo ""
+    echo "--- Running PBLAS tests (single process, m=8 n=8 k=4) ---"
+    PBLAS_OUTPUT="${REPO_ROOT}/test/pblas_regression_output.csv"
+
+    "${TESTER}" \
+        --routine pblas \
+        --sym-prefix d \
+        --lib "${SCALAPACK_LIB}" \
+        --conv-lib "${CONV_LIB}" \
+        --typesize 8 \
+        --m 8 --n 8 --k 4 \
+        --format csv \
+        2>&1 | tee "${PBLAS_OUTPUT}"
+
+    cat "${PBLAS_OUTPUT}" >> "${OUTPUT_FILE}"
+else
+    echo ""
+    echo "--- Skipping PBLAS tests (ScaLAPACK not found) ---"
+fi
+
+# ---------------------------------------------------------------------------
 # Step 4: Parse CSV output and check thresholds
 # ---------------------------------------------------------------------------
 echo ""

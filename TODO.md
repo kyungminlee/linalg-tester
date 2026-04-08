@@ -28,11 +28,12 @@
 - [x] **Generator Relocation:** Move `gen_positive_definite_array` from `src/core/mpfr_lapack_utils.h` to `src/core/generators.cpp`.
 
 ## 6. PBLAS Support (NEW)
-- [ ] **Infrastructure:** Add support for ScaLAPACK-style 2D block-cyclic data distribution.
-- [ ] **Context:** Implement `PblasCtx` to handle BLACS context, process grid (M x N), and block sizes (MB, NB).
-- [ ] **Generators:** Implement distributed matrix generators that partition MPFR reference matrices across the process grid.
-- [ ] **Testers:** Add test drivers for core PBLAS routines (P_GEMM, P_TRSM, etc.) using MPI-aware verification.
-- [ ] **Verification:** Implement global-to-local and local-to-global MPFR gather/scatter for error computation.
+- [x] **Infrastructure:** Add support for ScaLAPACK-style 2D block-cyclic data distribution.
+- [x] **Context:** Implement `PblasCtx` to handle BLACS context, process grid (M x N), and block sizes (MB, NB).
+- [x] **Generators:** Implement distributed matrix generators that partition MPFR reference matrices across the process grid.
+- [x] **Testers:** Add test drivers for core PBLAS routines (P_GEMM, P_TRSM, etc.) using MPI-aware verification.
+- [x] **Verification:** Implement global-to-local and local-to-global MPFR gather/scatter for error computation.
+- [x] **Verification:** All 414 regression tests pass (328 BLAS/LAPACK + 6 BLACS + 80 PBLAS L3/L2/L1).
 
 ## 7. BLACS Support (NEW)
 - [x] **Infrastructure:** Wrappers for context creation, process grid management (`BLACS_GRIDINIT`, `BLACS_GRIDEXIT`).

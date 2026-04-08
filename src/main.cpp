@@ -8,6 +8,7 @@
 #include "lapack/eigenvalues.h"
 #include "lapack/auxiliary.h"
 #include "blacs/blacs.h"
+#include "pblas/pblas.h"
 
 #include "../third_party/CLI11.hpp"
 
@@ -173,6 +174,29 @@ static const RoutineEntry routines[] = {
     {"blacs_gsum2d", "gsum2d",      "blacs_combine", "BLACS global sum",         "xGSUM2D",                  test_blacs_gsum2d},
     {"blacs_gamx2d", "gamx2d",      "blacs_combine", "BLACS global max",         "xGAMX2D",                  test_blacs_gamx2d},
     {"blacs_gamn2d", "gamn2d",      "blacs_combine", "BLACS global min",         "xGAMN2D",                  test_blacs_gamn2d},
+    // PBLAS Level 3
+    {"pgemm",  "gemm",  "pblas3", "Parallel matrix multiply",     "C = alpha*op(A)*op(B) + beta*C",              test_pgemm},
+    {"ptrsm",  "trsm",  "pblas3", "Parallel triangular solve",    "op(A)*X = alpha*B",                           test_ptrsm},
+    {"psymm",  "symm",  "pblas3", "Parallel symmetric multiply",  "C = alpha*A*B + beta*C",                      test_psymm},
+    {"psyrk",  "syrk",  "pblas3", "Parallel symmetric rank-k",    "C = alpha*A*A^T + beta*C",                    test_psyrk},
+    {"psyr2k", "syr2k", "pblas3", "Parallel symmetric rank-2k",   "C = alpha*AB^T + alpha*BA^T + beta*C",        test_psyr2k},
+    {"ptrmm",  "trmm",  "pblas3", "Parallel triangular multiply", "B = alpha*op(A)*B",                           test_ptrmm},
+    // PBLAS Level 2
+    {"pgemv",  "gemv",  "pblas2", "Parallel matrix-vector",       "y = alpha*op(A)*x + beta*y",                  test_pgemv},
+    {"psymv",  "symv",  "pblas2", "Parallel symmetric MV",        "y = alpha*A*x + beta*y",                      test_psymv},
+    {"ptrmv",  "trmv",  "pblas2", "Parallel triangular MV",       "x = op(A)*x",                                 test_ptrmv},
+    {"ptrsv",  "trsv",  "pblas2", "Parallel triangular solve",    "op(A)*x = b",                                 test_ptrsv},
+    {"pger",   "ger",   "pblas2", "Parallel rank-1 update",       "A = alpha*x*y^T + A",                         test_pger},
+    {"psyr",   "syr",   "pblas2", "Parallel symmetric rank-1",    "A = alpha*x*x^T + A",                         test_psyr},
+    {"psyr2",  "syr2",  "pblas2", "Parallel symmetric rank-2",    "A = alpha*x*y^T + alpha*y*x^T + A",           test_psyr2},
+    // PBLAS Level 1
+    {"pswap",  "swap",  "pblas1", "Parallel swap vectors",        "x <-> y",                                     test_pswap},
+    {"pscal",  "scal",  "pblas1", "Parallel scale vector",        "x = alpha*x",                                 test_pscal},
+    {"pcopy",  "copy",  "pblas1", "Parallel copy vector",         "y = x",                                       test_pcopy},
+    {"paxpy",  "axpy",  "pblas1", "Parallel vector addition",     "y = alpha*x + y",                             test_paxpy},
+    {"pdot",   "dot",   "pblas1", "Parallel dot product",         "x^T * y",                                     test_pdot},
+    {"pnrm2",  "nrm2",  "pblas1", "Parallel Euclidean norm",     "||x||_2",                                     test_pnrm2},
+    {"pasum",  "asum",  "pblas1", "Parallel absolute sum",        "sum(|x_i|)",                                  test_pasum},
 };
 
 static constexpr int num_routines = sizeof(routines) / sizeof(routines[0]);
@@ -202,6 +226,9 @@ static std::string derive_sym(const std::string &prefix, const RoutineEntry &r) 
     // BLACS context routines: no type prefix, just fortran_name + "_"
     if (r.fortran_name && std::strncmp(r.fortran_name, "blacs_", 6) == 0)
         return std::string(r.fortran_name) + "_";
+    // PBLAS: p{prefix}{base}_ (e.g., pdgemm_)
+    if (std::strncmp(r.category, "pblas", 5) == 0)
+        return "p" + prefix + base + "_";
     return prefix + base + "_";
 }
 
@@ -243,6 +270,7 @@ int main(int argc, char **argv) {
     int kl = 2, ku = 2;
     int incx = 1, incy = 1;
     int ld_pad = 0;
+    int mb = 0, nb_opt = 0;
     double threshold = -1.0;
     std::string format = "text";
     std::string complex_return_abi_str = "hidden";
@@ -267,6 +295,8 @@ int main(int argc, char **argv) {
     app.add_option("--incx", incx, "Increment for x")->default_val(1);
     app.add_option("--incy", incy, "Increment for y")->default_val(1);
     app.add_option("--ld-pad", ld_pad, "Leading dimension padding")->default_val(0);
+    app.add_option("--mb", mb, "PBLAS row block size (0=auto)")->default_val(0);
+    app.add_option("--nb", nb_opt, "PBLAS column block size (0=auto)")->default_val(0);
     app.add_option("--threshold", threshold, "Error threshold (exit nonzero if exceeded)");
     app.add_option("--format", format, "Output format (text/json/csv)")->default_val("text");
 
@@ -315,6 +345,12 @@ int main(int argc, char **argv) {
                     std::printf("BLACS Broadcast:\n");
                 else if (std::strcmp(cur_cat, "blacs_combine") == 0)
                     std::printf("BLACS Combine:\n");
+                else if (std::strcmp(cur_cat, "pblas3") == 0)
+                    std::printf("PBLAS Level 3:\n");
+                else if (std::strcmp(cur_cat, "pblas2") == 0)
+                    std::printf("PBLAS Level 2:\n");
+                else if (std::strcmp(cur_cat, "pblas1") == 0)
+                    std::printf("PBLAS Level 1:\n");
             }
             std::printf("  %-8s %-35s %s\n", r.name, r.description, r.formula);
         }
@@ -388,6 +424,8 @@ int main(int argc, char **argv) {
     params.incx = incx;
     params.incy = incy;
     params.ld_pad = ld_pad;
+    params.mb = mb;
+    params.nb = nb_opt;
     params.seed = seed;
 
     // Determine which routines to run
@@ -403,7 +441,9 @@ int main(int argc, char **argv) {
                      routine_name == "clapack_aux" ||
                      routine_name == "blacs" || routine_name == "blacs_ctx" ||
                      routine_name == "blacs_p2p" || routine_name == "blacs_bcast" ||
-                     routine_name == "blacs_combine");
+                     routine_name == "blacs_combine" ||
+                     routine_name == "pblas" || routine_name == "pblas3" ||
+                     routine_name == "pblas2" || routine_name == "pblas1");
 
     if (is_batch && sym_prefix.empty() && sym_name.empty()) {
         std::fprintf(stderr, "Error: batch mode requires --sym-prefix (or --sym for single routine)\n");
@@ -427,6 +467,10 @@ int main(int argc, char **argv) {
                 else if (routine_name == "blacs" &&
                          std::strncmp(r.category, "blacs_", 6) == 0)
                     ; /* match */
+                /* "pblas" matches all pblas* categories */
+                else if (routine_name == "pblas" &&
+                         std::strncmp(r.category, "pblas", 5) == 0)
+                    ; /* match */
                 else
                     continue;
             }
@@ -440,6 +484,12 @@ int main(int argc, char **argv) {
             if (std::strncmp(r.category, "blacs_", 6) == 0 &&
                 routine_name != "blacs" &&
                 std::strncmp(routine_name.c_str(), "blacs_", 6) != 0)
+                continue;
+            /* Skip PBLAS categories unless explicitly requested.
+               PBLAS requires a ScaLAPACK library. */
+            if (std::strncmp(r.category, "pblas", 5) == 0 &&
+                routine_name != "pblas" &&
+                std::strncmp(routine_name.c_str(), "pblas", 5) != 0)
                 continue;
             std::string sym = sym_prefix.empty() ? sym_name : derive_sym(sym_prefix, r);
             run_routine(r, ctx, lib, sym, params, format);

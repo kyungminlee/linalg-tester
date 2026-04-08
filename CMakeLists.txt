@@ -163,6 +163,29 @@ set(CLAPACK_AUX_SOURCES
     src/lapack/auxiliary/claswp.cpp
 )
 
+set(PBLAS_SOURCES
+    src/pblas/level3/pgemm.cpp
+    src/pblas/level3/ptrsm.cpp
+    src/pblas/level3/psymm.cpp
+    src/pblas/level3/psyrk.cpp
+    src/pblas/level3/psyr2k.cpp
+    src/pblas/level3/ptrmm.cpp
+    src/pblas/level2/pgemv.cpp
+    src/pblas/level2/psymv.cpp
+    src/pblas/level2/ptrmv.cpp
+    src/pblas/level2/ptrsv.cpp
+    src/pblas/level2/pger.cpp
+    src/pblas/level2/psyr.cpp
+    src/pblas/level2/psyr2.cpp
+    src/pblas/level1/pswap.cpp
+    src/pblas/level1/pscal.cpp
+    src/pblas/level1/pcopy.cpp
+    src/pblas/level1/paxpy.cpp
+    src/pblas/level1/pdot.cpp
+    src/pblas/level1/pnrm2.cpp
+    src/pblas/level1/pasum.cpp
+)
+
 set(BLACS_SOURCES
     src/blacs/context/blacs_setup.cpp
     src/blacs/p2p/blacs_gesd2d.cpp
@@ -187,6 +210,7 @@ add_executable(linalg_tester
     ${CLAPACK_EIG_SOURCES}
     ${CLAPACK_AUX_SOURCES}
     ${BLACS_SOURCES}
+    ${PBLAS_SOURCES}
 )
 
 target_link_libraries(linalg_tester PRIVATE PkgConfig::GMP PkgConfig::MPFR)
