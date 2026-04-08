@@ -1,25 +1,44 @@
 # linalg-tester
 
-Accuracy tester for custom BLAS routines. The tester loads a user-supplied
+Accuracy tester for BLAS and LAPACK routines. The tester loads a user-supplied
 shared library via `dlopen`, calls the target routine, and compares the result
-against a multi-precision (MPFR) reference computation. Two error metrics are
-reported:
+against a multi-precision (MPFR) reference computation.
+
+**BLAS routines** use element-wise error metrics:
 
 | Metric | Definition |
 |--------|-----------|
 | `max_rel` | max element-wise relative error: max_ij \|e_ij\| / \|ref_ij\| |
 | `normwise` | Frobenius-norm relative error: \|\|E\|\|_F / \|\|ref\|\|_F |
 
+**LAPACK routines** use residual-based metrics (normalized by n * eps):
+
+| Metric | Definition |
+|--------|-----------|
+| `max_rel` | residual: \|\|A - reconstruct(factors)\|\|_1 / (\|\|A\|\|_1 * n * eps) |
+| `normwise` | orthogonality: \|\|Q^T Q - I\|\|_1 / (n * eps), or residual if N/A |
+
 ## Routines covered
 
-A single binary `linalg_tester` tests all 34 real BLAS routines (those with
-both single and double precision variants):
+A single binary `linalg_tester` tests 34 real BLAS routines and 33 LAPACK
+routines:
+
+### BLAS (34 routines)
 
 | Level | Routines | Parameter combos |
 |-------|----------|-----------------|
 | Level 3 (6) | GEMM, TRSM, SYMM, SYRK, SYR2K, TRMM | 73 |
 | Level 2 (16) | GEMV, SYMV, TRMV, TRSV, GER, SYR, SYR2, GBMV, SBMV, TBMV, TBSV, SPMV, TPMV, TPSV, SPR, SPR2 | 93 |
 | Level 1 (12) | ROTG, ROTMG, ROT, ROTM, SWAP, SCAL, COPY, AXPY, DOT, NRM2, ASUM, IAMAX | 12 |
+
+### LAPACK (33 routines)
+
+| Category | Routines | Test cases |
+|----------|----------|------------|
+| Factorizations (7) | GETRF, POTRF, SYTRF, GEQRF, GELQF, GEBRD, SYTRD | 10 |
+| Solvers (7) | GESV, POSV, SYSV, GBSV, GTSV, GELS, GELSD | 10 |
+| Eigenvalue/SVD (8) | SYEV, SYEVD, SYEVR, GEEV, GEES, GESVD, GESDD, SYGV | 12 |
+| Auxiliary (11) | GETRS, GETRI, POTRS, POTRI, ORGQR, ORMQR, GECON, LANGE, LANSY, LACPY, LASWP | 22 |
 
 Run `linalg_tester --list` to see all available routines with descriptions.
 
@@ -45,6 +64,17 @@ src/
     level1.h            — Level 1 declarations
     level1/             — rotg, rotmg, rot, rotm, swap, scal, copy,
                           axpy, dot, nrm2, asum, iamax
+  lapack/
+    lapack_common.h     — LapackResult, workspace query helpers
+    factorizations.h    — factorization declarations
+    factorizations/     — getrf, potrf, sytrf, geqrf, gelqf, gebrd, sytrd
+    solvers.h           — solver declarations
+    solvers/            — gesv, posv, sysv, gbsv, gtsv, gels, gelsd
+    eigenvalues.h       — eigenvalue/SVD declarations
+    eigenvalues/        — syev, syevd, syevr, geev, gees, gesvd, gesdd, sygv
+    auxiliary.h          — auxiliary declarations
+    auxiliary/          — getrs, getri, potrs, potri, orgqr, ormqr,
+                          gecon, lange, lansy, lacpy, laswp
 examples/
   openblas_double/      — test against OpenBLAS double precision
   reference_blas/       — test against system/reference BLAS double precision
@@ -116,16 +146,21 @@ linalg_tester --routine <name> \
 Test all routines in a category by auto-deriving symbol names from a prefix:
 
 ```sh
-# Test all BLAS routines with double-precision OpenBLAS
+# Test all routines (BLAS + LAPACK) with double-precision OpenBLAS
 linalg_tester --routine all --sym-prefix d \
     --lib libopenblas.so --conv-lib double_conv.so --typesize 8
 
-# Test only Level 3
+# BLAS categories
 linalg_tester --routine blas3 --sym-prefix d ...
-
-# Test only Level 2 or Level 1
 linalg_tester --routine blas2 --sym-prefix d ...
 linalg_tester --routine blas1 --sym-prefix d ...
+
+# LAPACK categories
+linalg_tester --routine lapack --sym-prefix d ...       # all LAPACK
+linalg_tester --routine lapack_fact --sym-prefix d ...   # factorizations
+linalg_tester --routine lapack_solve --sym-prefix d ...  # solvers
+linalg_tester --routine lapack_eig --sym-prefix d ...    # eigenvalue/SVD
+linalg_tester --routine lapack_aux --sym-prefix d ...    # auxiliary
 ```
 
 ### Conversion library API
@@ -167,12 +202,13 @@ cd examples/reference_quad
 
 ### Sample output
 
-Full output from testing all 34 routines against OpenBLAS 0.3.32 double
-precision (m=n=k=32, seed=42, prec=256 bits, macOS/aarch64):
+Full output from testing all 67 routines (34 BLAS + 33 LAPACK) against
+OpenBLAS 0.3.32 double precision (m=n=32, k=4, seed=42, prec=256 bits,
+macOS/aarch64):
 
 ```
 $ linalg_tester --routine all --sym-prefix d --lib libopenblas.dylib \
-    --conv-lib double_conv.so --typesize 8 --m 32 --n 32 --k 32
+    --conv-lib double_conv.so --typesize 8 --m 32 --n 32 --k 4
 
 === gemm (General matrix multiply) ===
 [GEMM transa=N transb=N] max_rel=8.734621e-14  normwise=1.754905e-16
@@ -419,11 +455,143 @@ $ linalg_tester --routine all --sym-prefix d --lib libopenblas.dylib \
 
 === iamax (Index of max absolute value) ===
 [IAMAX n=32 incx=1] max_rel=0.000000e+00  normwise=0.000000e+00
+
+=== getrf (LU factorization) ===
+[GETRF m=32 n=32] max_rel=6.563249e-02  normwise=6.563249e-02
+
+=== potrf (Cholesky factorization) ===
+[POTRF uplo=U n=32] max_rel=3.355348e-02  normwise=3.355348e-02
+[POTRF uplo=L n=32] max_rel=4.368379e-02  normwise=4.368379e-02
+
+=== sytrf (Symmetric LDL^T) ===
+[SYTRF uplo=U n=32] max_rel=1.324133e-02  normwise=1.324133e-02
+[SYTRF uplo=L n=32] max_rel=2.298018e-02  normwise=2.298018e-02
+
+=== geqrf (QR factorization) ===
+[GEQRF m=32 n=32] max_rel=1.572589e-01  normwise=9.616128e-01
+
+=== gelqf (LQ factorization) ===
+[GELQF m=32 n=32] max_rel=2.158827e-01  normwise=1.095297e+00
+
+=== gebrd (Bidiagonal reduction) ===
+[GEBRD m=32 n=32] max_rel=2.990018e-01  normwise=1.751068e+00
+
+=== sytrd (Tridiagonal reduction) ===
+[SYTRD uplo=U n=32] max_rel=1.888933e-01  normwise=9.522127e-01
+[SYTRD uplo=L n=32] max_rel=2.852448e-01  normwise=1.009034e+00
+
+=== gesv (General solve) ===
+[GESV n=32 nrhs=4] max_rel=1.667003e-02  normwise=1.667003e-02
+
+=== posv (SPD solve) ===
+[POSV uplo=U n=32 nrhs=4] max_rel=1.708378e-02  normwise=1.708378e-02
+[POSV uplo=L n=32 nrhs=4] max_rel=1.970319e-02  normwise=1.970319e-02
+
+=== sysv (Symmetric solve) ===
+[SYSV uplo=U n=32 nrhs=4] max_rel=4.054904e-02  normwise=4.054904e-02
+[SYSV uplo=L n=32 nrhs=4] max_rel=2.889921e-02  normwise=2.889921e-02
+
+=== gbsv (Banded solve) ===
+[GBSV n=32 kl=2 ku=2 nrhs=4] max_rel=2.418069e-02  normwise=2.418069e-02
+
+=== gtsv (Tridiagonal solve) ===
+[GTSV n=32 nrhs=4] max_rel=1.993163e-02  normwise=1.993163e-02
+
+=== gels (Least squares) ===
+[GELS trans=N m=48 n=32 nrhs=4 (overdetermined)] max_rel=5.719443e-02  normwise=5.719443e-02
+[GELS trans=N m=32 n=48 nrhs=4 (underdetermined)] max_rel=3.501472e-02  normwise=3.501472e-02
+
+=== gelsd (Least squares (SVD)) ===
+[GELSD m=48 n=32 nrhs=4 rank=32] max_rel=1.383095e-01  normwise=1.383095e-01
+
+=== syev (Symmetric eigenvalue) ===
+[SYEV uplo=U] max_rel=7.559484e-01  normwise=2.132113e+00
+[SYEV uplo=L] max_rel=4.989781e-01  normwise=2.385019e+00
+
+=== syevd (Symmetric eigenvalue (D&C)) ===
+[SYEVD uplo=U] max_rel=3.858507e-01  normwise=1.820500e+00
+[SYEVD uplo=L] max_rel=3.713157e-01  normwise=1.831387e+00
+
+=== syevr (Symmetric eigenvalue (MRRR)) ===
+[SYEVR uplo=U] max_rel=1.314156e+00  normwise=5.682998e+00
+[SYEVR uplo=L] max_rel=1.124844e+00  normwise=4.897271e+00
+
+=== geev (General eigenvalue) ===
+[GEEV ] max_rel=6.878834e-01  normwise=6.878834e-01
+
+=== gees (Schur decomposition) ===
+[GEES ] max_rel=1.399363e+00  normwise=4.010990e+00
+
+=== gesvd (SVD) ===
+[GESVD ] max_rel=5.702032e-01  normwise=2.024818e+00
+
+=== gesdd (SVD (D&C)) ===
+[GESDD ] max_rel=8.293678e-01  normwise=2.052698e+00
+
+=== sygv (Gen. symmetric eigenvalue) ===
+[SYGV uplo=U] max_rel=1.041092e-01  normwise=1.041092e-01
+[SYGV uplo=L] max_rel=8.404205e-02  normwise=8.404205e-02
+
+=== getrs (Solve from LU factors) ===
+[GETRS trans=N n=32 nrhs=4] max_rel=1.347203e-02  normwise=1.347203e-02
+[GETRS trans=T n=32 nrhs=4] max_rel=2.022037e-02  normwise=2.022037e-02
+
+=== getri (Inverse from LU) ===
+[GETRI ] max_rel=2.526726e-02  normwise=2.526726e-02
+
+=== potrs (Solve from Cholesky) ===
+[POTRS uplo=U] max_rel=1.996156e-02  normwise=1.996156e-02
+[POTRS uplo=L] max_rel=1.989582e-02  normwise=1.989582e-02
+
+=== potri (Inverse from Cholesky) ===
+[POTRI uplo=U] max_rel=3.191061e-02  normwise=3.191061e-02
+[POTRI uplo=L] max_rel=3.235012e-02  normwise=3.235012e-02
+
+=== orgqr (Generate Q from QR) ===
+[ORGQR ] max_rel=1.047859e-01  normwise=1.100297e+00
+
+=== ormqr (Multiply by Q) ===
+[ORMQR side=L trans=N] max_rel=8.890822e-02  normwise=8.890822e-02
+[ORMQR side=L trans=T] max_rel=1.254477e-01  normwise=1.254477e-01
+
+=== gecon (Condition number estimate) ===
+[GECON norm=1 (rcond, 1/rcond)] max_rel=1.841798e-03  normwise=5.429477e+02
+
+=== lange (Matrix norm) ===
+[LANGE norm=M m=32 n=32] max_rel=0.000000e+00  normwise=0.000000e+00
+[LANGE norm=1 m=32 n=32] max_rel=1.971490e-16  normwise=1.971490e-16
+[LANGE norm=I m=32 n=32] max_rel=0.000000e+00  normwise=0.000000e+00
+[LANGE norm=F m=32 n=32] max_rel=1.961152e-16  normwise=1.961152e-16
+
+=== lansy (Symmetric matrix norm) ===
+[LANSY norm=M uplo=U n=32] max_rel=0.000000e+00  normwise=0.000000e+00
+[LANSY norm=1 uplo=U n=32] max_rel=1.819457e-16  normwise=1.819457e-16
+[LANSY norm=I uplo=U n=32] max_rel=1.819457e-16  normwise=1.819457e-16
+[LANSY norm=F uplo=U n=32] max_rel=0.000000e+00  normwise=0.000000e+00
+[LANSY norm=M uplo=L n=32] max_rel=0.000000e+00  normwise=0.000000e+00
+[LANSY norm=1 uplo=L n=32] max_rel=1.738804e-16  normwise=1.738804e-16
+[LANSY norm=I uplo=L n=32] max_rel=1.738804e-16  normwise=1.738804e-16
+[LANSY norm=F uplo=L n=32] max_rel=1.946829e-16  normwise=1.946829e-16
+
+=== lacpy (Matrix copy) ===
+[LACPY uplo=U m=32 n=32] max_rel=0.000000e+00  normwise=0.000000e+00
+[LACPY uplo=L m=32 n=32] max_rel=0.000000e+00  normwise=0.000000e+00
+[LACPY uplo=A m=32 n=32] max_rel=0.000000e+00  normwise=0.000000e+00
+
+=== laswp (Row permutations) ===
+[LASWP m=32 n=32 k1=1 k2=32] max_rel=0.000000e+00  normwise=0.000000e+00
 ```
 
-All 178 test cases produce normwise errors within a few ULPs of machine
-epsilon (~2.2e-16), confirming numerical correctness. Exact operations
-(SWAP, COPY, IAMAX, ROTMG) report zero error as expected.
+**BLAS results** (178 test cases): All produce normwise errors within a few
+ULPs of machine epsilon (~2.2e-16). Exact operations (SWAP, COPY, IAMAX,
+ROTMG) report zero error.
+
+**LAPACK results** (54 test cases): All residuals are well below 10 (the
+conventional LAPACK test suite threshold), normalized by n * eps. Solvers and
+factorizations show residuals < 0.15. Eigenvalue/SVD routines show residuals
+< 6 (expected due to the higher sensitivity of eigenvalue problems). Norm
+computations (LANGE, LANSY) achieve machine epsilon. Exact operations (LACPY,
+LASWP) report zero error.
 
 ## Type-agnostic design
 

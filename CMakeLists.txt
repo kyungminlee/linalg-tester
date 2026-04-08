@@ -56,12 +56,61 @@ set(BLAS1_SOURCES
     src/blas/level1/iamax.cpp
 )
 
+set(LAPACK_FACT_SOURCES
+    src/lapack/factorizations/getrf.cpp
+    src/lapack/factorizations/potrf.cpp
+    src/lapack/factorizations/sytrf.cpp
+    src/lapack/factorizations/geqrf.cpp
+    src/lapack/factorizations/gelqf.cpp
+    src/lapack/factorizations/gebrd.cpp
+    src/lapack/factorizations/sytrd.cpp
+)
+
+set(LAPACK_SOLVE_SOURCES
+    src/lapack/solvers/gesv.cpp
+    src/lapack/solvers/posv.cpp
+    src/lapack/solvers/sysv.cpp
+    src/lapack/solvers/gbsv.cpp
+    src/lapack/solvers/gtsv.cpp
+    src/lapack/solvers/gels.cpp
+    src/lapack/solvers/gelsd.cpp
+)
+
+set(LAPACK_EIG_SOURCES
+    src/lapack/eigenvalues/syev.cpp
+    src/lapack/eigenvalues/syevd.cpp
+    src/lapack/eigenvalues/syevr.cpp
+    src/lapack/eigenvalues/geev.cpp
+    src/lapack/eigenvalues/gees.cpp
+    src/lapack/eigenvalues/gesvd.cpp
+    src/lapack/eigenvalues/gesdd.cpp
+    src/lapack/eigenvalues/sygv.cpp
+)
+
+set(LAPACK_AUX_SOURCES
+    src/lapack/auxiliary/getrs.cpp
+    src/lapack/auxiliary/getri.cpp
+    src/lapack/auxiliary/potrs.cpp
+    src/lapack/auxiliary/potri.cpp
+    src/lapack/auxiliary/orgqr.cpp
+    src/lapack/auxiliary/ormqr.cpp
+    src/lapack/auxiliary/gecon.cpp
+    src/lapack/auxiliary/lange.cpp
+    src/lapack/auxiliary/lansy.cpp
+    src/lapack/auxiliary/lacpy.cpp
+    src/lapack/auxiliary/laswp.cpp
+)
+
 add_executable(linalg_tester
     src/main.cpp
     ${CORE_SOURCES}
     ${BLAS3_SOURCES}
     ${BLAS2_SOURCES}
     ${BLAS1_SOURCES}
+    ${LAPACK_FACT_SOURCES}
+    ${LAPACK_SOLVE_SOURCES}
+    ${LAPACK_EIG_SOURCES}
+    ${LAPACK_AUX_SOURCES}
 )
 
 target_link_libraries(linalg_tester PRIVATE PkgConfig::GMP PkgConfig::MPFR)

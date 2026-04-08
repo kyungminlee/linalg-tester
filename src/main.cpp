@@ -3,6 +3,10 @@
 #include "blas/level3.h"
 #include "blas/level2.h"
 #include "blas/level1.h"
+#include "lapack/factorizations.h"
+#include "lapack/solvers.h"
+#include "lapack/eigenvalues.h"
+#include "lapack/auxiliary.h"
 
 #include "../third_party/CLI11.hpp"
 
@@ -64,6 +68,43 @@ static const RoutineEntry routines[] = {
     {"nrm2",  "blas1", "Euclidean norm",              "||x||_2",                        test_nrm2},
     {"asum",  "blas1", "Sum of absolute values",      "sum(|x_i|)",                     test_asum},
     {"iamax", "blas1", "Index of max absolute value",  "argmax_i(|x_i|)",               test_iamax},
+    // LAPACK Factorizations
+    {"getrf", "lapack_fact", "LU factorization",             "PA = LU",                        test_getrf},
+    {"potrf", "lapack_fact", "Cholesky factorization",       "A = LL^T",                       test_potrf},
+    {"sytrf", "lapack_fact", "Symmetric LDL^T",              "A = LDL^T (Bunch-Kaufman)",      test_sytrf},
+    {"geqrf", "lapack_fact", "QR factorization",             "A = QR",                         test_geqrf},
+    {"gelqf", "lapack_fact", "LQ factorization",             "A = LQ",                         test_gelqf},
+    {"gebrd", "lapack_fact", "Bidiagonal reduction",         "A = U*B*V^T",                    test_gebrd},
+    {"sytrd", "lapack_fact", "Tridiagonal reduction",        "A = Q*T*Q^T",                    test_sytrd},
+    // LAPACK Solvers
+    {"gesv",  "lapack_solve","General solve",                "AX = B (LU)",                    test_gesv},
+    {"posv",  "lapack_solve","SPD solve",                    "AX = B (Cholesky)",              test_posv},
+    {"sysv",  "lapack_solve","Symmetric solve",              "AX = B (LDL^T)",                 test_sysv},
+    {"gbsv",  "lapack_solve","Banded solve",                 "AX = B (banded LU)",             test_gbsv},
+    {"gtsv",  "lapack_solve","Tridiagonal solve",            "AX = B (tridiag)",               test_gtsv},
+    {"gels",  "lapack_solve","Least squares",                "min||Ax-b||_2",                  test_gels},
+    {"gelsd", "lapack_solve","Least squares (SVD)",          "min||Ax-b||_2 (SVD)",            test_gelsd},
+    // LAPACK Eigenvalue / SVD
+    {"syev",  "lapack_eig",  "Symmetric eigenvalue",         "A = V*D*V^T",                    test_syev},
+    {"syevd", "lapack_eig",  "Symmetric eigenvalue (D&C)",   "A = V*D*V^T",                    test_syevd},
+    {"syevr", "lapack_eig",  "Symmetric eigenvalue (MRRR)",  "A = V*D*V^T",                    test_syevr},
+    {"geev",  "lapack_eig",  "General eigenvalue",           "A*V = V*diag(w)",                test_geev},
+    {"gees",  "lapack_eig",  "Schur decomposition",          "A = V*T*V^T",                    test_gees},
+    {"gesvd", "lapack_eig",  "SVD",                          "A = U*S*V^T",                    test_gesvd},
+    {"gesdd", "lapack_eig",  "SVD (D&C)",                    "A = U*S*V^T",                    test_gesdd},
+    {"sygv",  "lapack_eig",  "Gen. symmetric eigenvalue",    "A*x = lambda*B*x",               test_sygv},
+    // LAPACK Auxiliary
+    {"getrs", "lapack_aux",  "Solve from LU factors",        "op(A)*X = B",                    test_getrs},
+    {"getri", "lapack_aux",  "Inverse from LU",              "A^{-1}",                         test_getri},
+    {"potrs", "lapack_aux",  "Solve from Cholesky",          "A*X = B",                        test_potrs},
+    {"potri", "lapack_aux",  "Inverse from Cholesky",        "A^{-1}",                         test_potri},
+    {"orgqr", "lapack_aux",  "Generate Q from QR",           "Q from reflectors",              test_orgqr},
+    {"ormqr", "lapack_aux",  "Multiply by Q",                "C = op(Q)*C",                    test_ormqr},
+    {"gecon", "lapack_aux",  "Condition number estimate",    "rcond(A)",                       test_gecon},
+    {"lange", "lapack_aux",  "Matrix norm",                  "||A||",                          test_lange},
+    {"lansy", "lapack_aux",  "Symmetric matrix norm",        "||A||_sym",                      test_lansy},
+    {"lacpy", "lapack_aux",  "Matrix copy",                  "B = A",                          test_lacpy},
+    {"laswp", "lapack_aux",  "Row permutations",             "P*A",                            test_laswp},
 };
 
 static constexpr int num_routines = sizeof(routines) / sizeof(routines[0]);
@@ -120,7 +161,7 @@ int main(int argc, char **argv) {
     std::string format = "text";
 
     app.add_flag("--list", list_flag, "List all supported routines and exit");
-    app.add_option("--routine", routine_name, "Routine name (or all/blas1/blas2/blas3)");
+    app.add_option("--routine", routine_name, "Routine name (or all/blas1/blas2/blas3/lapack/lapack_fact/lapack_solve/lapack_eig/lapack_aux)");
     app.add_option("--lib", lib_path, "Path to shared library under test");
     app.add_option("--sym", sym_name, "Symbol name to test (e.g. dgemm_)");
     app.add_option("--sym-prefix", sym_prefix, "Symbol prefix for batch mode (e.g. d -> dgemm_)");
@@ -155,6 +196,14 @@ int main(int argc, char **argv) {
                     std::printf("BLAS Level 2:\n");
                 else if (std::strcmp(cur_cat, "blas1") == 0)
                     std::printf("BLAS Level 1:\n");
+                else if (std::strcmp(cur_cat, "lapack_fact") == 0)
+                    std::printf("LAPACK Factorizations:\n");
+                else if (std::strcmp(cur_cat, "lapack_solve") == 0)
+                    std::printf("LAPACK Solvers:\n");
+                else if (std::strcmp(cur_cat, "lapack_eig") == 0)
+                    std::printf("LAPACK Eigenvalue/SVD:\n");
+                else if (std::strcmp(cur_cat, "lapack_aux") == 0)
+                    std::printf("LAPACK Auxiliary:\n");
             }
             std::printf("  %-8s %-35s %s\n", r.name, r.description, r.formula);
         }
@@ -220,7 +269,10 @@ int main(int argc, char **argv) {
 
     // Determine which routines to run
     bool is_batch = (routine_name == "all" || routine_name == "blas1" ||
-                     routine_name == "blas2" || routine_name == "blas3");
+                     routine_name == "blas2" || routine_name == "blas3" ||
+                     routine_name == "lapack" || routine_name == "lapack_fact" ||
+                     routine_name == "lapack_solve" || routine_name == "lapack_eig" ||
+                     routine_name == "lapack_aux");
 
     if (is_batch && sym_prefix.empty() && sym_name.empty()) {
         std::fprintf(stderr, "Error: batch mode requires --sym-prefix (or --sym for single routine)\n");
@@ -231,8 +283,14 @@ int main(int argc, char **argv) {
         // Batch mode: run all matching routines
         for (int i = 0; i < num_routines; ++i) {
             const auto &r = routines[i];
-            if (routine_name != "all" && routine_name != r.category)
-                continue;
+            if (routine_name != "all" && routine_name != r.category) {
+                /* "lapack" matches all lapack_* categories */
+                if (routine_name == "lapack" &&
+                    std::strncmp(r.category, "lapack_", 7) == 0)
+                    ; /* match */
+                else
+                    continue;
+            }
             std::string sym = sym_prefix.empty() ? sym_name : derive_sym(sym_prefix, r.name);
             run_routine(r, ctx, lib, sym, params, format);
         }
