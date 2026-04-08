@@ -1,0 +1,18 @@
+=== blacs_setup (BLACS context lifecycle) ===
+BLACS_SETUP,nprocs=1 topologies=2,true,-1.000000e+00,0
+
+=== blacs_gesd2d (BLACS point-to-point) ===
+BLACS_GESD2D,m=8 n=8 lda=8 nprocs=1,true,-1.000000e+00,0
+
+=== blacs_gebs2d (BLACS broadcast) ===
+BLACS_GEBS2D,m=8 n=8 scope=A nprocs=1,true,-1.000000e+00,0
+
+=== blacs_gsum2d (BLACS global sum) ===
+BLACS_GSUM2D,m=8 n=8 scope=A nprocs=1,true,0.000000e+00,0
+
+=== blacs_gamx2d (BLACS global max) ===
+BLACS_GAMX2D,m=8 n=8 scope=A nprocs=1,true,0.000000e+00,0
+
+=== blacs_gamn2d (BLACS global min) ===
+BLACS_GAMN2D,m=8 n=8 scope=A nprocs=1,true,0.000000e+00,0
+

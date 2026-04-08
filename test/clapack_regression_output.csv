@@ -1,0 +1,125 @@
+=== cgetrf (Complex LU factorization) ===
+CGETRF,m=8 n=8,2.228685e-01,,0
+
+=== cpotrf (Complex Cholesky) ===
+CPOTRF,uplo=U n=8,1.134601e-01,,0
+CPOTRF,uplo=L n=8,1.106544e-01,,0
+
+=== cgeqrf (Complex QR factorization) ===
+CGEQRF,m=8 n=8,3.466620e-01,9.504364e-01,0
+
+=== cgelqf (Complex LQ factorization) ===
+CGELQF,m=8 n=8,4.743542e-01,1.598824e+00,0
+
+=== cgebrd (Complex bidiagonal reduction) ===
+CGEBRD,m=8 n=8,5.098523e-01,2.308811e+00,0
+
+=== hetrf (Hermitian LDL^H) ===
+HETRF,uplo=U n=8,1.581445e-01,,0
+HETRF,uplo=L n=8,1.165457e-01,,0
+
+=== hetrd (Hermitian tridiag reduction) ===
+HETRD,uplo=U n=8,6.855144e-01,1.961709e+00,0
+HETRD,uplo=L n=8,1.118672e+00,1.462065e+00,0
+
+=== cgesv (Complex general solve) ===
+CGESV,n=8 nrhs=4,6.420005e-02,,0
+
+=== cposv (HPD solve) ===
+CPOSV,uplo=U n=8 nrhs=4,8.223806e-02,,0
+CPOSV,uplo=L n=8 nrhs=4,1.131070e-01,,0
+
+=== cgbsv (Complex banded solve) ===
+CGBSV,n=8 kl=2 ku=2 nrhs=4,1.081889e-01,,0
+
+=== cgtsv (Complex tridiagonal solve) ===
+CGTSV,n=8 nrhs=4,1.001127e-01,,0
+
+=== cgels (Complex least squares) ===
+CGELS,trans=N m=12 n=8 nrhs=4 (overdetermined),1.270453e-01,,0
+CGELS,trans=N m=8 n=12 nrhs=4 (underdetermined),1.081854e-01,,0
+
+=== cgelsd (Complex least squares (SVD)) ===
+CGELSD,m=12 n=8 nrhs=4 rank=8,1.001681e+00,,0
+
+=== hesv (Hermitian solve) ===
+HESV,uplo=U n=8 nrhs=4,7.915370e-02,,0
+HESV,uplo=L n=8 nrhs=4,9.981717e-02,,0
+
+=== heev (Hermitian eigenvalue) ===
+HEEV,uplo=U,9.963704e-01,2.487288e+00,0
+HEEV,uplo=L,1.001966e+00,2.585676e+00,0
+
+=== heevd (Hermitian eigenvalue (D&C)) ===
+HEEVD,uplo=U,1.001690e+00,2.678193e+00,0
+HEEVD,uplo=L,1.289394e+00,3.118628e+00,0
+
+=== heevr (Hermitian eigenvalue (MRRR)) ===
+HEEVR,uplo=U,4.461329e+00,2.533987e+00,0
+HEEVR,uplo=L,4.297604e+00,3.715127e+00,0
+
+=== hegv (Gen. Hermitian eigenvalue) ===
+HEGV,uplo=U,3.829425e-01,,0
+HEGV,uplo=L,2.779466e-01,,0
+
+=== cgesvd (Complex SVD) ===
+CGESVD,,1.138407e+00,4.179661e+00,0
+
+=== cgesdd (Complex SVD (D&C)) ===
+CGESDD,,9.098525e-01,2.722390e+00,0
+
+=== cgeev (Complex general eigenvalue) ===
+CGEEV,,2.455674e+00,,0
+
+=== cgees (Complex Schur decomposition) ===
+CGEES,,3.760518e+00,5.101003e+00,0
+
+=== cgetrs (Complex solve from LU) ===
+CGETRS,trans=N n=8 nrhs=4,8.273068e-02,,0
+CGETRS,trans=C n=8 nrhs=4,1.085423e-01,,0
+
+=== cgetri (Complex inverse from LU) ===
+CGETRI,,7.978397e-02,,0
+
+=== cpotrs (Complex solve from Cholesky) ===
+CPOTRS,uplo=U,8.315486e-02,,0
+CPOTRS,uplo=L,1.317454e-01,,0
+
+=== cpotri (Complex inverse from Cholesky) ===
+CPOTRI,uplo=U,1.373634e-01,,0
+CPOTRI,uplo=L,1.404749e-01,,0
+
+=== ungqr (Generate unitary Q from QR) ===
+UNGQR,,2.339637e-01,1.189442e+00,0
+
+=== unmqr (Multiply by unitary Q) ===
+UNMQR,side=L trans=N,2.598253e-01,,0
+UNMQR,side=L trans=C,2.414613e-01,,0
+
+=== cgecon (Complex condition number) ===
+CGECON,norm=1,8.699304e-03,,0
+
+=== clange (Complex matrix norm) ===
+CLANGE,norm=M m=8 n=8,1.670783e-16,1.670783e-16,true,0
+CLANGE,norm=1 m=8 n=8,0.000000e+00,0.000000e+00,true,0
+CLANGE,norm=I m=8 n=8,0.000000e+00,0.000000e+00,true,0
+CLANGE,norm=F m=8 n=8,1.365791e-16,1.365791e-16,true,0
+
+=== lanhe (Hermitian matrix norm) ===
+LANHE,norm=M uplo=U n=8,0.000000e+00,0.000000e+00,true,0
+LANHE,norm=1 uplo=U n=8,0.000000e+00,0.000000e+00,true,0
+LANHE,norm=I uplo=U n=8,0.000000e+00,0.000000e+00,true,0
+LANHE,norm=F uplo=U n=8,1.347680e-16,1.347680e-16,true,0
+LANHE,norm=M uplo=L n=8,0.000000e+00,0.000000e+00,true,0
+LANHE,norm=1 uplo=L n=8,1.271336e-16,1.271336e-16,true,0
+LANHE,norm=I uplo=L n=8,1.271336e-16,1.271336e-16,true,0
+LANHE,norm=F uplo=L n=8,1.335938e-16,1.335938e-16,true,0
+
+=== clacpy (Complex matrix copy) ===
+CLACPY,uplo=U m=8 n=8,0.000000e+00,0.000000e+00,true,0
+CLACPY,uplo=L m=8 n=8,0.000000e+00,0.000000e+00,true,0
+CLACPY,uplo=A m=8 n=8,0.000000e+00,0.000000e+00,true,0
+
+=== claswp (Complex row permutations) ===
+CLASWP,m=8 n=8 k1=1 k2=8,0.000000e+00,0.000000e+00,true,0
+
