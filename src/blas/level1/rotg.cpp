@@ -119,6 +119,10 @@ void test_rotg(const TesterCtx &ctx, void *lib, const char *sym,
                                   err_c.max_relative, err_s.max_relative});
     err.normwise_relative = std::max({err_r.normwise_relative, err_z.normwise_relative,
                                        err_c.normwise_relative, err_s.normwise_relative});
+    err.max_absolute_at_zero = std::max({err_r.max_absolute_at_zero, err_z.max_absolute_at_zero,
+                                          err_c.max_absolute_at_zero, err_s.max_absolute_at_zero});
+    err.nan_inf_mismatches = err_r.nan_inf_mismatches + err_z.nan_inf_mismatches +
+                             err_c.nan_inf_mismatches + err_s.nan_inf_mismatches;
 
     report_result("ROTG", "", err, format);
 

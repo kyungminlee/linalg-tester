@@ -117,6 +117,8 @@ static ErrorResult compute_error_metrics(
 
     ErrorResult result;
     result.max_relative = mpfr_get_d(max_rel.get(), MPFR_RNDN);
+    result.max_absolute_at_zero = -1.0;
+    result.nan_inf_mismatches = 0;
 
     if (mpfr_zero_p(sum_sq_ref.get())) {
         result.normwise_relative = 0.0;

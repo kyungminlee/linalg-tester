@@ -85,6 +85,8 @@ void test_rot(const TesterCtx &ctx, void *lib, const char *sym,
     ErrorResult err;
     err.max_relative = std::max(err_x.max_relative, err_y.max_relative);
     err.normwise_relative = std::max(err_x.normwise_relative, err_y.normwise_relative);
+    err.max_absolute_at_zero = std::max(err_x.max_absolute_at_zero, err_y.max_absolute_at_zero);
+    err.nan_inf_mismatches = err_x.nan_inf_mismatches + err_y.nan_inf_mismatches;
 
     char params_str[128];
     std::snprintf(params_str, sizeof(params_str),

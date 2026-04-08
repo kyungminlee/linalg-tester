@@ -60,6 +60,8 @@ void test_iamax(const TesterCtx &ctx, void *lib, const char *sym,
     ErrorResult err;
     err.max_relative = match ? 0.0 : 1.0;
     err.normwise_relative = match ? 0.0 : 1.0;
+    err.max_absolute_at_zero = -1.0;
+    err.nan_inf_mismatches = 0;
 
     char params_str[128];
     std::snprintf(params_str, sizeof(params_str),

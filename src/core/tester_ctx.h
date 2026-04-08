@@ -14,8 +14,10 @@ struct TesterCtx {
 };
 
 struct ErrorResult {
-    double max_relative;      // max_ij |e_ij| / |ref_ij|
-    double normwise_relative; // ||E||_F / ||ref||_F
+    double max_relative;          // max_ij |e_ij| / |ref_ij|
+    double normwise_relative;     // ||E||_F / ||ref||_F
+    double max_absolute_at_zero;  // max absolute error where ref == 0 (-1 if no zeros)
+    int    nan_inf_mismatches;    // count of NaN/Inf mismatches
 };
 
 struct TestParams {

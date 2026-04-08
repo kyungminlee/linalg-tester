@@ -69,7 +69,10 @@ void test_geqrf(const TesterCtx &ctx, void *lib, const char *sym,
             ctx.to_mpfr(tau_mpfr.at(i, 0), tp + static_cast<std::size_t>(i) * ctx.typesize);
     }
 
-    /* Extract R (upper triangular part of A_fact, m-by-n) */
+    /* Extract R (upper triangular part of A_fact, m-by-n).
+       Note: R is upper triangular by construction (we explicitly zero
+       below the diagonal). The residual ||A - Q*R|| implicitly verifies
+       that the factored output has the correct triangular structure. */
     MpfrMatrix R(m, n, prec);
     for (int j = 0; j < n; ++j)
         for (int i = 0; i < m; ++i) {

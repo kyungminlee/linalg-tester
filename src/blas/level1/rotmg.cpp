@@ -120,6 +120,8 @@ void test_rotmg(const TesterCtx &ctx, void *lib, const char *sym,
     ErrorResult err;
     err.max_relative = 0.0;
     err.normwise_relative = 0.0;
+    err.max_absolute_at_zero = -1.0;
+    err.nan_inf_mismatches = 0;
 
     if (!skip_reconstruction) {
         MpfrScalar sqrt_d1_in(prec), sqrt_d2_in(prec), sqrt_d1_out(prec);

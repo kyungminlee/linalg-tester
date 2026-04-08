@@ -11,6 +11,7 @@ set(CORE_SOURCES
     src/core/error_metrics.cpp
     src/core/generators.cpp
     src/core/report.cpp
+    src/core/sentinel.cpp
 )
 
 set(BLAS3_SOURCES

@@ -42,3 +42,8 @@ void *gen_packed_triangular_array(int n, char uplo, char diag,
                                    std::size_t typesize,
                                    mpfr_to_custom_fn from_mpfr,
                                    mpfr_prec_t prec, unsigned *seed);
+
+void *gen_positive_definite_array(int n, std::size_t typesize,
+                                   mpfr_to_custom_fn from_mpfr,
+                                   custom_to_mpfr_fn to_mpfr,
+                                   mpfr_prec_t prec, unsigned *seed);

@@ -22,24 +22,35 @@ struct LapackResult {
 };
 
 /* ------------------------------------------------------------------ */
-/* Report a LAPACK result using the standard report_result             */
+/* Report a LAPACK result with proper labeled fields                    */
 /* ------------------------------------------------------------------ */
 
 inline void report_lapack_result(const char *routine, const char *params_str,
                                   const LapackResult &lr, const std::string &format)
 {
-    /* Pack residual into ErrorResult for compatibility with report_result */
-    ErrorResult err;
-    err.max_relative = lr.residual;
-    err.normwise_relative = (lr.orthogonality >= 0.0) ? lr.orthogonality : lr.residual;
-
-    if (lr.info != 0) {
-        char info_params[256];
-        std::snprintf(info_params, sizeof(info_params),
-                      "%s INFO=%d", params_str, lr.info);
-        report_result(routine, info_params, err, format);
+    if (format == "json") {
+        std::printf("{\"routine\":\"%s\",\"params\":\"%s\",\"residual\":%.6e",
+                    routine, params_str, lr.residual);
+        if (lr.orthogonality >= 0.0)
+            std::printf(",\"orthogonality\":%.6e", lr.orthogonality);
+        if (lr.info != 0)
+            std::printf(",\"info\":%d", lr.info);
+        std::printf("}\n");
+    } else if (format == "csv") {
+        std::printf("%s,%s,%.6e,", routine, params_str, lr.residual);
+        if (lr.orthogonality >= 0.0)
+            std::printf("%.6e,", lr.orthogonality);
+        else
+            std::printf(",");
+        std::printf("%d\n", lr.info);
     } else {
-        report_result(routine, params_str, err, format);
+        /* default: text */
+        std::printf("[%s %s] residual=%.6e", routine, params_str, lr.residual);
+        if (lr.orthogonality >= 0.0)
+            std::printf("  orthogonality=%.6e", lr.orthogonality);
+        if (lr.info != 0)
+            std::printf("  INFO=%d", lr.info);
+        std::printf("\n");
     }
 }
 

@@ -88,13 +88,13 @@ void test_gecon(const TesterCtx &ctx, void *lib, const char *sym,
         ctx.to_mpfr(rcond_mpfr.get(), rcond_buf);
         double rcond = mpfr_get_d(rcond_mpfr.get(), MPFR_RNDN);
 
-        /* Report rcond as the "residual" (it's an estimate, not exact).
-           A good estimate should have rcond > 0 for non-singular matrices.
-           We report 1/rcond as an indicator of the condition number. */
-        ErrorResult err;
-        err.max_relative = rcond;
-        err.normwise_relative = (rcond > 0.0) ? 1.0 / rcond : 1e30;
-        report_result("GECON", "norm=1 (rcond, 1/rcond)", err, format);
+        /* Report using LAPACK-style output. The "residual" field shows
+           rcond, and a good GECON returns rcond > 0 for non-singular matrices. */
+        LapackResult lr;
+        lr.residual = rcond;
+        lr.orthogonality = -1.0;
+        lr.info = info;
+        report_lapack_result("GECON", "norm=1", lr, format);
     }
 
     delete[] iwork;

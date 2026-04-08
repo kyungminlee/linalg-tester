@@ -11,10 +11,35 @@ static void accumulate_error(
     MpfrScalar &absref, MpfrScalar &ratio,
     MpfrScalar &sum_sq_diff, MpfrScalar &sum_sq_ref, MpfrScalar &max_rel,
     const mpfr_t &ref_elem, const void *out_elem,
-    const TesterCtx &ctx)
+    const TesterCtx &ctx,
+    MpfrScalar &max_abs_at_zero, int &nan_inf_mismatches)
 {
     ctx.to_mpfr(val.get(), out_elem);
 
+    /* --- NaN/Inf handling --- */
+    int ref_nan = mpfr_nan_p(ref_elem);
+    int ref_inf = mpfr_inf_p(ref_elem);
+    int val_nan = mpfr_nan_p(val.get());
+    int val_inf = mpfr_inf_p(val.get());
+
+    if (ref_nan) {
+        if (!val_nan)
+            ++nan_inf_mismatches;
+        return; /* skip ratio computation */
+    }
+    if (ref_inf) {
+        /* Check same sign of infinity */
+        if (!val_inf || mpfr_sgn(ref_elem) != mpfr_sgn(val.get()))
+            ++nan_inf_mismatches;
+        return;
+    }
+    /* ref is finite */
+    if (val_nan || val_inf) {
+        ++nan_inf_mismatches;
+        return;
+    }
+
+    /* --- Normal finite path --- */
     mpfr_sub(diff.get(), val.get(), ref_elem, MPFR_RNDN);
     mpfr_abs(absdiff.get(), diff.get(), MPFR_RNDN);
     mpfr_abs(absref.get(), ref_elem, MPFR_RNDN);
@@ -24,8 +49,19 @@ static void accumulate_error(
     mpfr_fma(sum_sq_ref.get(), ref_elem, ref_elem,
              sum_sq_ref.get(), MPFR_RNDN);
 
-    if (mpfr_zero_p(absref.get()))
+    if (mpfr_zero_p(absref.get())) {
+        /* ref is zero: track max absolute error at zero positions */
+        if (!mpfr_zero_p(absdiff.get())) {
+            if (mpfr_sgn(max_abs_at_zero.get()) < 0 ||
+                mpfr_cmp(absdiff.get(), max_abs_at_zero.get()) > 0)
+                mpfr_set(max_abs_at_zero.get(), absdiff.get(), MPFR_RNDN);
+        } else {
+            /* Both zero, but mark that we've seen a zero ref */
+            if (mpfr_sgn(max_abs_at_zero.get()) < 0)
+                mpfr_set_d(max_abs_at_zero.get(), 0.0, MPFR_RNDN);
+        }
         return;
+    }
     mpfr_div(ratio.get(), absdiff.get(), absref.get(), MPFR_RNDN);
     if (mpfr_cmp(ratio.get(), max_rel.get()) > 0)
         mpfr_set(max_rel.get(), ratio.get(), MPFR_RNDN);
@@ -38,7 +74,9 @@ static void accumulate_error(
 static ErrorResult finalize_error(MpfrScalar &sum_sq_diff,
                                    MpfrScalar &sum_sq_ref,
                                    MpfrScalar &max_rel,
-                                   MpfrScalar &ratio)
+                                   MpfrScalar &ratio,
+                                   MpfrScalar &max_abs_at_zero,
+                                   int nan_inf_mismatches)
 {
     ErrorResult result;
     result.max_relative = mpfr_get_d(max_rel.get(), MPFR_RNDN);
@@ -51,6 +89,9 @@ static ErrorResult finalize_error(MpfrScalar &sum_sq_diff,
         mpfr_div(ratio.get(), sum_sq_diff.get(), sum_sq_ref.get(), MPFR_RNDN);
         result.normwise_relative = mpfr_get_d(ratio.get(), MPFR_RNDN);
     }
+
+    result.max_absolute_at_zero = mpfr_get_d(max_abs_at_zero.get(), MPFR_RNDN);
+    result.nan_inf_mismatches = nan_inf_mismatches;
 
     return result;
 }
@@ -65,10 +106,13 @@ ErrorResult compute_error_matrix(const MpfrMatrix &ref, const void *out,
     mpfr_prec_t prec = ctx.prec;
     MpfrScalar val(prec), diff(prec), absdiff(prec), absref(prec);
     MpfrScalar ratio(prec), sum_sq_diff(prec), sum_sq_ref(prec), max_rel(prec);
+    MpfrScalar max_abs_at_zero(prec);
+    int nan_inf_mismatches = 0;
 
     mpfr_set_d(sum_sq_diff.get(), 0.0, MPFR_RNDN);
     mpfr_set_d(sum_sq_ref.get(),  0.0, MPFR_RNDN);
     mpfr_set_d(max_rel.get(),     0.0, MPFR_RNDN);
+    mpfr_set_d(max_abs_at_zero.get(), -1.0, MPFR_RNDN);
 
     const char *p = static_cast<const char *>(out);
     for (int j = 0; j < ref.cols(); ++j) {
@@ -77,11 +121,13 @@ ErrorResult compute_error_matrix(const MpfrMatrix &ref, const void *out,
                              sum_sq_diff, sum_sq_ref, max_rel,
                              ref.at(i, j),
                              p + IDX(i, j, ld) * ctx.typesize,
-                             ctx);
+                             ctx,
+                             max_abs_at_zero, nan_inf_mismatches);
         }
     }
 
-    return finalize_error(sum_sq_diff, sum_sq_ref, max_rel, ratio);
+    return finalize_error(sum_sq_diff, sum_sq_ref, max_rel, ratio,
+                          max_abs_at_zero, nan_inf_mismatches);
 }
 
 /* ------------------------------------------------------------------ */
@@ -94,10 +140,13 @@ ErrorResult compute_error_matrix_triangle(const MpfrMatrix &ref, const void *out
     mpfr_prec_t prec = ctx.prec;
     MpfrScalar val(prec), diff(prec), absdiff(prec), absref(prec);
     MpfrScalar ratio(prec), sum_sq_diff(prec), sum_sq_ref(prec), max_rel(prec);
+    MpfrScalar max_abs_at_zero(prec);
+    int nan_inf_mismatches = 0;
 
     mpfr_set_d(sum_sq_diff.get(), 0.0, MPFR_RNDN);
     mpfr_set_d(sum_sq_ref.get(),  0.0, MPFR_RNDN);
     mpfr_set_d(max_rel.get(),     0.0, MPFR_RNDN);
+    mpfr_set_d(max_abs_at_zero.get(), -1.0, MPFR_RNDN);
 
     const char *p = static_cast<const char *>(out);
     for (int j = 0; j < ref.cols(); ++j) {
@@ -107,12 +156,14 @@ ErrorResult compute_error_matrix_triangle(const MpfrMatrix &ref, const void *out
                                  sum_sq_diff, sum_sq_ref, max_rel,
                                  ref.at(i, j),
                                  p + IDX(i, j, ld) * ctx.typesize,
-                                 ctx);
+                                 ctx,
+                                 max_abs_at_zero, nan_inf_mismatches);
             }
         }
     }
 
-    return finalize_error(sum_sq_diff, sum_sq_ref, max_rel, ratio);
+    return finalize_error(sum_sq_diff, sum_sq_ref, max_rel, ratio,
+                          max_abs_at_zero, nan_inf_mismatches);
 }
 
 /* ------------------------------------------------------------------ */
@@ -125,10 +176,13 @@ ErrorResult compute_error_vector(const MpfrMatrix &ref, const void *out,
     mpfr_prec_t prec = ctx.prec;
     MpfrScalar val(prec), diff(prec), absdiff(prec), absref(prec);
     MpfrScalar ratio(prec), sum_sq_diff(prec), sum_sq_ref(prec), max_rel(prec);
+    MpfrScalar max_abs_at_zero(prec);
+    int nan_inf_mismatches = 0;
 
     mpfr_set_d(sum_sq_diff.get(), 0.0, MPFR_RNDN);
     mpfr_set_d(sum_sq_ref.get(),  0.0, MPFR_RNDN);
     mpfr_set_d(max_rel.get(),     0.0, MPFR_RNDN);
+    mpfr_set_d(max_abs_at_zero.get(), -1.0, MPFR_RNDN);
 
     const char *p = static_cast<const char *>(out);
     int n = ref.rows();
@@ -145,10 +199,12 @@ ErrorResult compute_error_vector(const MpfrMatrix &ref, const void *out,
                          sum_sq_diff, sum_sq_ref, max_rel,
                          ref.at(i, 0),
                          p + offset,
-                         ctx);
+                         ctx,
+                         max_abs_at_zero, nan_inf_mismatches);
     }
 
-    return finalize_error(sum_sq_diff, sum_sq_ref, max_rel, ratio);
+    return finalize_error(sum_sq_diff, sum_sq_ref, max_rel, ratio,
+                          max_abs_at_zero, nan_inf_mismatches);
 }
 
 /* ------------------------------------------------------------------ */
@@ -163,15 +219,47 @@ ErrorResult compute_error_scalar(const MpfrScalar &ref, const void *out,
 
     ctx.to_mpfr(val.get(), out);
 
+    ErrorResult result;
+    result.max_absolute_at_zero = -1.0;
+    result.nan_inf_mismatches = 0;
+
+    /* --- NaN/Inf handling --- */
+    int ref_nan = mpfr_nan_p(ref.get());
+    int ref_inf = mpfr_inf_p(ref.get());
+    int val_nan = mpfr_nan_p(val.get());
+    int val_inf = mpfr_inf_p(val.get());
+
+    if (ref_nan) {
+        if (!val_nan)
+            result.nan_inf_mismatches = 1;
+        result.max_relative = 0.0;
+        result.normwise_relative = 0.0;
+        return result;
+    }
+    if (ref_inf) {
+        if (!val_inf || mpfr_sgn(ref.get()) != mpfr_sgn(val.get()))
+            result.nan_inf_mismatches = 1;
+        result.max_relative = 0.0;
+        result.normwise_relative = 0.0;
+        return result;
+    }
+    if (val_nan || val_inf) {
+        result.nan_inf_mismatches = 1;
+        result.max_relative = 0.0;
+        result.normwise_relative = 0.0;
+        return result;
+    }
+
+    /* --- Normal finite path --- */
     mpfr_sub(diff.get(), val.get(), ref.get(), MPFR_RNDN);
     mpfr_abs(absdiff.get(), diff.get(), MPFR_RNDN);
     mpfr_abs(absref.get(), ref.get(), MPFR_RNDN);
 
-    ErrorResult result;
     if (mpfr_zero_p(absref.get())) {
         result.max_relative = mpfr_zero_p(absdiff.get()) ? 0.0
                               : mpfr_get_d(absdiff.get(), MPFR_RNDN);
         result.normwise_relative = result.max_relative;
+        result.max_absolute_at_zero = mpfr_get_d(absdiff.get(), MPFR_RNDN);
     } else {
         mpfr_div(ratio.get(), absdiff.get(), absref.get(), MPFR_RNDN);
         result.max_relative = mpfr_get_d(ratio.get(), MPFR_RNDN);

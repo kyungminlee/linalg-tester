@@ -1,0 +1,371 @@
+=== gemm (General matrix multiply) ===
+GEMM,transa=N transb=N,5.703863e-15,7.813234e-17,true,0
+GEMM,transa=N transb=T,5.164388e-14,7.609520e-17,true,0
+GEMM,transa=N transb=C,5.164388e-14,7.609520e-17,true,0
+GEMM,transa=T transb=N,7.298618e-15,7.975794e-17,true,0
+GEMM,transa=T transb=T,1.636416e-15,8.042820e-17,true,0
+GEMM,transa=T transb=C,1.636416e-15,8.042820e-17,true,0
+GEMM,transa=C transb=N,7.298618e-15,7.975794e-17,true,0
+GEMM,transa=C transb=T,1.636416e-15,8.042820e-17,true,0
+GEMM,transa=C transb=C,1.636416e-15,8.042820e-17,true,0
+
+=== trsm (Triangular solve) ===
+TRSM,side=L uplo=U trans=N diag=N,6.644444e-16,1.161225e-16,true,0
+TRSM,side=L uplo=U trans=N diag=U,3.121306e-13,1.534731e-16,true,0
+TRSM,side=L uplo=U trans=T diag=N,3.397602e-15,1.224957e-16,true,0
+TRSM,side=L uplo=U trans=T diag=U,7.097166e-15,1.251934e-16,true,0
+TRSM,side=L uplo=U trans=C diag=N,3.397602e-15,1.224957e-16,true,0
+TRSM,side=L uplo=U trans=C diag=U,7.097166e-15,1.251934e-16,true,0
+TRSM,side=L uplo=L trans=N diag=N,9.026918e-16,1.242175e-16,true,0
+TRSM,side=L uplo=L trans=N diag=U,3.427920e-14,1.855029e-16,true,0
+TRSM,side=L uplo=L trans=T diag=N,7.515715e-15,1.068833e-16,true,0
+TRSM,side=L uplo=L trans=T diag=U,8.412105e-14,1.660994e-16,true,0
+TRSM,side=L uplo=L trans=C diag=N,7.515715e-15,1.068833e-16,true,0
+TRSM,side=L uplo=L trans=C diag=U,8.412105e-14,1.660994e-16,true,0
+TRSM,side=R uplo=U trans=N diag=N,2.900270e-15,1.045396e-16,true,0
+TRSM,side=R uplo=U trans=N diag=U,9.430558e-15,1.567424e-16,true,0
+TRSM,side=R uplo=U trans=T diag=N,6.580187e-15,8.722701e-17,true,0
+TRSM,side=R uplo=U trans=T diag=U,1.242810e-13,2.154795e-16,true,0
+TRSM,side=R uplo=U trans=C diag=N,6.580187e-15,8.722701e-17,true,0
+TRSM,side=R uplo=U trans=C diag=U,1.242810e-13,2.154795e-16,true,0
+TRSM,side=R uplo=L trans=N diag=N,5.709975e-16,1.003760e-16,true,0
+TRSM,side=R uplo=L trans=N diag=U,1.110669e-14,1.932100e-16,true,0
+TRSM,side=R uplo=L trans=T diag=N,1.240771e-15,9.481249e-17,true,0
+TRSM,side=R uplo=L trans=T diag=U,1.257120e-14,1.565057e-16,true,0
+TRSM,side=R uplo=L trans=C diag=N,1.240771e-15,9.481249e-17,true,0
+TRSM,side=R uplo=L trans=C diag=U,1.257120e-14,1.565057e-16,true,0
+
+=== symm (Symmetric matrix multiply) ===
+SYMM,side=L uplo=U,5.493302e-13,1.326126e-16,true,0
+SYMM,side=L uplo=L,1.495368e-14,1.118875e-16,true,0
+SYMM,side=R uplo=U,1.191109e-14,1.285479e-16,true,0
+SYMM,side=R uplo=L,1.653632e-14,1.308746e-16,true,0
+
+=== syrk (Symmetric rank-k update) ===
+SYRK,uplo=U trans=N,1.075385e-14,1.119600e-16,true,0
+SYRK,uplo=U trans=T,1.603702e-14,9.181562e-17,true,0
+SYRK,uplo=U trans=C,1.603702e-14,9.181562e-17,true,0
+SYRK,uplo=L trans=N,4.823598e-15,1.155162e-16,true,0
+SYRK,uplo=L trans=T,1.342985e-15,9.050832e-17,true,0
+SYRK,uplo=L trans=C,1.342985e-15,9.050832e-17,true,0
+
+=== syr2k (Symmetric rank-2k update) ===
+SYR2K,uplo=U trans=N,4.655406e-15,1.071709e-16,true,0
+SYR2K,uplo=U trans=T,6.840453e-15,9.975074e-17,true,0
+SYR2K,uplo=U trans=C,6.840453e-15,9.975074e-17,true,0
+SYR2K,uplo=L trans=N,5.561257e-14,9.133577e-17,true,0
+SYR2K,uplo=L trans=T,1.006725e-14,9.396206e-17,true,0
+SYR2K,uplo=L trans=C,1.006725e-14,9.396206e-17,true,0
+
+=== trmm (Triangular matrix multiply) ===
+TRMM,side=L uplo=U trans=N diag=N,9.403308e-15,1.636940e-16,true,0
+TRMM,side=L uplo=U trans=N diag=U,9.200545e-15,1.364824e-16,true,0
+TRMM,side=L uplo=U trans=T diag=N,7.979011e-16,6.928299e-17,true,0
+TRMM,side=L uplo=U trans=T diag=U,7.990168e-15,1.082647e-16,true,0
+TRMM,side=L uplo=U trans=C diag=N,7.979011e-16,6.928299e-17,true,0
+TRMM,side=L uplo=U trans=C diag=U,7.990168e-15,1.082647e-16,true,0
+TRMM,side=L uplo=L trans=N diag=N,5.674304e-16,6.590678e-17,true,0
+TRMM,side=L uplo=L trans=N diag=U,7.645105e-14,1.221685e-16,true,0
+TRMM,side=L uplo=L trans=T diag=N,9.818094e-16,1.603493e-16,true,0
+TRMM,side=L uplo=L trans=T diag=U,1.170007e-14,1.264239e-16,true,0
+TRMM,side=L uplo=L trans=C diag=N,9.818094e-16,1.603493e-16,true,0
+TRMM,side=L uplo=L trans=C diag=U,1.170007e-14,1.264239e-16,true,0
+TRMM,side=R uplo=U trans=N diag=N,1.232136e-15,6.589986e-17,true,0
+TRMM,side=R uplo=U trans=N diag=U,8.092541e-15,1.223505e-16,true,0
+TRMM,side=R uplo=U trans=T diag=N,9.962937e-15,1.500707e-16,true,0
+TRMM,side=R uplo=U trans=T diag=U,8.242698e-15,1.235695e-16,true,0
+TRMM,side=R uplo=U trans=C diag=N,9.962937e-15,1.500707e-16,true,0
+TRMM,side=R uplo=U trans=C diag=U,8.242698e-15,1.235695e-16,true,0
+TRMM,side=R uplo=L trans=N diag=N,1.055769e-14,1.494829e-16,true,0
+TRMM,side=R uplo=L trans=N diag=U,1.356573e-14,1.272562e-16,true,0
+TRMM,side=R uplo=L trans=T diag=N,1.240339e-15,6.566350e-17,true,0
+TRMM,side=R uplo=L trans=T diag=U,1.642067e-14,1.201396e-16,true,0
+TRMM,side=R uplo=L trans=C diag=N,1.240339e-15,6.566350e-17,true,0
+TRMM,side=R uplo=L trans=C diag=U,1.642067e-14,1.201396e-16,true,0
+
+=== gemv (General matrix-vector) ===
+GEMV,trans=N m=16 n=16 incx=1 incy=1,1.104514e-15,1.316155e-16,true,0
+GEMV,trans=T m=16 n=16 incx=1 incy=1,1.172341e-15,6.700698e-17,true,0
+GEMV,trans=C m=16 n=16 incx=1 incy=1,1.172341e-15,6.700698e-17,true,0
+
+=== symv (Symmetric matrix-vector) ===
+SYMV,uplo=U n=16 incx=1 incy=1,6.404527e-16,1.983695e-16,true,0
+SYMV,uplo=L n=16 incx=1 incy=1,2.073931e-15,9.636233e-17,true,0
+
+=== trmv (Triangular matrix-vector) ===
+TRMV,uplo=U trans=N diag=N n=16 incx=1,2.941541e-16,1.166918e-16,true,0
+TRMV,uplo=U trans=N diag=U n=16 incx=1,3.482125e-14,1.175033e-16,true,0
+TRMV,uplo=U trans=T diag=N n=16 incx=1,7.261396e-15,5.094308e-17,true,0
+TRMV,uplo=U trans=T diag=U n=16 incx=1,5.490372e-15,8.477023e-17,true,0
+TRMV,uplo=U trans=C diag=N n=16 incx=1,7.261396e-15,5.094308e-17,true,0
+TRMV,uplo=U trans=C diag=U n=16 incx=1,5.490372e-15,8.477023e-17,true,0
+TRMV,uplo=L trans=N diag=N n=16 incx=1,3.977087e-16,2.074767e-16,true,0
+TRMV,uplo=L trans=N diag=U n=16 incx=1,4.799542e-15,1.112860e-16,true,0
+TRMV,uplo=L trans=T diag=N n=16 incx=1,1.048465e-16,5.506442e-17,true,0
+TRMV,uplo=L trans=T diag=U n=16 incx=1,8.304359e-16,6.924373e-17,true,0
+TRMV,uplo=L trans=C diag=N n=16 incx=1,1.048465e-16,5.506442e-17,true,0
+TRMV,uplo=L trans=C diag=U n=16 incx=1,8.304359e-16,6.924373e-17,true,0
+
+=== trsv (Triangular vector solve) ===
+TRSV,uplo=U trans=N diag=N n=16 incx=1,2.068756e-16,8.826304e-17,true,0
+TRSV,uplo=U trans=N diag=U n=16 incx=1,1.782249e-16,5.427695e-17,true,0
+TRSV,uplo=U trans=T diag=N n=16 incx=1,4.331689e-15,4.536121e-17,true,0
+TRSV,uplo=U trans=T diag=U n=16 incx=1,4.698670e-16,2.016341e-16,true,0
+TRSV,uplo=U trans=C diag=N n=16 incx=1,4.331689e-15,4.536121e-17,true,0
+TRSV,uplo=U trans=C diag=U n=16 incx=1,4.698670e-16,2.016341e-16,true,0
+TRSV,uplo=L trans=N diag=N n=16 incx=1,3.695840e-16,1.217275e-16,true,0
+TRSV,uplo=L trans=N diag=U n=16 incx=1,1.714210e-15,1.112782e-16,true,0
+TRSV,uplo=L trans=T diag=N n=16 incx=1,3.474623e-16,4.364914e-17,true,0
+TRSV,uplo=L trans=T diag=U n=16 incx=1,6.337071e-16,2.436315e-16,true,0
+TRSV,uplo=L trans=C diag=N n=16 incx=1,3.474623e-16,4.364914e-17,true,0
+TRSV,uplo=L trans=C diag=U n=16 incx=1,6.337071e-16,2.436315e-16,true,0
+
+=== ger (General rank-1 update) ===
+GER,m=16 n=16 incx=1 incy=1,3.315912e-15,4.724598e-17,true,0
+
+=== syr (Symmetric rank-1 update) ===
+SYR,uplo=U n=16 incx=1,1.919790e-16,4.233752e-17,true,0
+SYR,uplo=L n=16 incx=1,2.332867e-16,4.528356e-17,true,0
+
+=== syr2 (Symmetric rank-2 update) ===
+SYR2,uplo=U n=16 incx=1 incy=1,1.205012e-15,7.190392e-17,true,0
+SYR2,uplo=L n=16 incx=1 incy=1,5.402491e-15,6.473805e-17,true,0
+
+=== gbmv (General banded matrix-vector) ===
+GBMV,trans=N m=16 n=16 kl=2 ku=2,1.410459e-16,6.321356e-17,true,0
+GBMV,trans=T m=16 n=16 kl=2 ku=2,7.182449e-16,8.227373e-17,true,0
+GBMV,trans=C m=16 n=16 kl=2 ku=2,7.182449e-16,8.227373e-17,true,0
+
+=== sbmv (Symmetric banded MV) ===
+SBMV,uplo=U n=16 k=2,1.068620e-14,7.919750e-17,true,0
+SBMV,uplo=L n=16 k=2,4.930323e-16,6.912907e-17,true,0
+
+=== tbmv (Triangular banded MV) ===
+TBMV,uplo=U trans=N diag=N n=16 k=2,1.258489e-16,6.720245e-17,true,0
+TBMV,uplo=U trans=N diag=U n=16 k=2,1.796231e-16,8.095805e-17,true,0
+TBMV,uplo=U trans=T diag=N n=16 k=2,6.460948e-17,3.180996e-17,true,0
+TBMV,uplo=U trans=T diag=U n=16 k=2,1.281724e-15,5.473971e-17,true,0
+TBMV,uplo=U trans=C diag=N n=16 k=2,6.460948e-17,3.180996e-17,true,0
+TBMV,uplo=U trans=C diag=U n=16 k=2,1.281724e-15,5.473971e-17,true,0
+TBMV,uplo=L trans=N diag=N n=16 k=2,2.316310e-16,5.082416e-17,true,0
+TBMV,uplo=L trans=N diag=U n=16 k=2,1.281724e-15,5.473971e-17,true,0
+TBMV,uplo=L trans=T diag=N n=16 k=2,1.043562e-16,4.174499e-17,true,0
+TBMV,uplo=L trans=T diag=U n=16 k=2,4.837284e-16,6.579633e-17,true,0
+TBMV,uplo=L trans=C diag=N n=16 k=2,1.043562e-16,4.174499e-17,true,0
+TBMV,uplo=L trans=C diag=U n=16 k=2,4.837284e-16,6.579633e-17,true,0
+
+=== tbsv (Triangular banded solve) ===
+TBSV,uplo=U trans=N diag=N n=16 k=2,1.894703e-16,7.773514e-17,true,0
+TBSV,uplo=U trans=N diag=U n=16 k=2,1.693474e-16,8.354611e-17,true,0
+TBSV,uplo=U trans=T diag=N n=16 k=2,1.528216e-16,7.084825e-17,true,0
+TBSV,uplo=U trans=T diag=U n=16 k=2,1.798575e-16,7.195073e-17,true,0
+TBSV,uplo=U trans=C diag=N n=16 k=2,1.528216e-16,7.084825e-17,true,0
+TBSV,uplo=U trans=C diag=U n=16 k=2,1.798575e-16,7.195073e-17,true,0
+TBSV,uplo=L trans=N diag=N n=16 k=2,1.504432e-16,7.971789e-17,true,0
+TBSV,uplo=L trans=N diag=U n=16 k=2,2.322101e-16,7.081028e-17,true,0
+TBSV,uplo=L trans=T diag=N n=16 k=2,1.055999e-16,4.500336e-17,true,0
+TBSV,uplo=L trans=T diag=U n=16 k=2,3.671327e-16,9.766523e-17,true,0
+TBSV,uplo=L trans=C diag=N n=16 k=2,1.055999e-16,4.500336e-17,true,0
+TBSV,uplo=L trans=C diag=U n=16 k=2,3.671327e-16,9.766523e-17,true,0
+
+=== spmv (Symmetric packed MV) ===
+SPMV,uplo=U n=16,7.445495e-16,1.883282e-16,true,0
+SPMV,uplo=L n=16,4.138111e-16,1.618453e-16,true,0
+
+=== tpmv (Triangular packed MV) ===
+TPMV,uplo=U trans=N diag=N n=16,2.941541e-16,1.166918e-16,true,0
+TPMV,uplo=U trans=N diag=U n=16,3.482125e-14,1.175033e-16,true,0
+TPMV,uplo=U trans=T diag=N n=16,6.869148e-15,4.390982e-17,true,0
+TPMV,uplo=U trans=T diag=U n=16,5.490372e-15,8.477023e-17,true,0
+TPMV,uplo=U trans=C diag=N n=16,6.869148e-15,4.390982e-17,true,0
+TPMV,uplo=U trans=C diag=U n=16,5.490372e-15,8.477023e-17,true,0
+TPMV,uplo=L trans=N diag=N n=16,1.314497e-16,4.494919e-17,true,0
+TPMV,uplo=L trans=N diag=U n=16,1.251035e-14,1.528494e-16,true,0
+TPMV,uplo=L trans=T diag=N n=16,1.048465e-16,5.506442e-17,true,0
+TPMV,uplo=L trans=T diag=U n=16,8.304359e-16,6.924373e-17,true,0
+TPMV,uplo=L trans=C diag=N n=16,1.048465e-16,5.506442e-17,true,0
+TPMV,uplo=L trans=C diag=U n=16,8.304359e-16,6.924373e-17,true,0
+
+=== tpsv (Triangular packed solve) ===
+TPSV,uplo=U trans=N diag=N n=16,2.068756e-16,8.826304e-17,true,0
+TPSV,uplo=U trans=N diag=U n=16,1.782249e-16,5.427695e-17,true,0
+TPSV,uplo=U trans=T diag=N n=16,4.331689e-15,4.536121e-17,true,0
+TPSV,uplo=U trans=T diag=U n=16,4.698670e-16,2.016341e-16,true,0
+TPSV,uplo=U trans=C diag=N n=16,4.331689e-15,4.536121e-17,true,0
+TPSV,uplo=U trans=C diag=U n=16,4.698670e-16,2.016341e-16,true,0
+TPSV,uplo=L trans=N diag=N n=16,3.695840e-16,1.217275e-16,true,0
+TPSV,uplo=L trans=N diag=U n=16,1.714210e-15,1.112782e-16,true,0
+TPSV,uplo=L trans=T diag=N n=16,3.474623e-16,4.364914e-17,true,0
+TPSV,uplo=L trans=T diag=U n=16,6.337071e-16,2.436315e-16,true,0
+TPSV,uplo=L trans=C diag=N n=16,3.474623e-16,4.364914e-17,true,0
+TPSV,uplo=L trans=C diag=U n=16,6.337071e-16,2.436315e-16,true,0
+
+=== spr (Symmetric packed rank-1) ===
+SPR,uplo=U n=16,9.172736e-16,4.703649e-17,true,0
+SPR,uplo=L n=16,1.413798e-16,4.345164e-17,true,0
+
+=== spr2 (Symmetric packed rank-2) ===
+SPR2,uplo=U n=16,6.053399e-16,7.424839e-17,true,0
+SPR2,uplo=L n=16,7.995489e-15,6.584001e-17,true,0
+
+=== rotg (Rotation generation) ===
+ROTG,,1.255052e-16,1.255052e-16,true,0
+
+=== rotmg (Modified Givens generation) ===
+ROTMG,,0.000000e+00,0.000000e+00,true,0
+
+=== rot (Apply rotation) ===
+ROT,n=16 incx=1 incy=1,2.297807e-16,6.910572e-17,true,0
+
+=== rotm (Apply modified Givens) ===
+ROTM,n=16 incx=1 incy=1 flag=-1,1.512001e-16,5.706920e-17,true,0
+
+=== swap (Swap vectors) ===
+SWAP,n=16 incx=1 incy=1,0.000000e+00,0.000000e+00,true,0
+
+=== scal (Scale vector) ===
+SCAL,n=16 incx=1,1.055677e-16,3.948322e-17,true,0
+
+=== copy (Copy vector) ===
+COPY,n=16 incx=1 incy=1,0.000000e+00,0.000000e+00,true,0
+
+=== axpy (Vector addition) ===
+AXPY,n=16 incx=1 incy=1,8.525689e-17,4.111308e-17,true,0
+
+=== dot (Dot product) ===
+DOT,n=16 incx=1 incy=1,6.947166e-17,6.947166e-17,true,0
+
+=== nrm2 (Euclidean norm) ===
+NRM2,n=16 incx=1,5.163547e-17,5.163547e-17,true,0
+
+=== asum (Sum of absolute values) ===
+ASUM,n=16 incx=1,1.269709e-17,1.269709e-17,true,0
+
+=== iamax (Index of max absolute value) ===
+IAMAX,n=16 incx=1,0.000000e+00,0.000000e+00,true,0
+
+=== getrf (LU factorization) ===
+GETRF,m=16 n=16,9.224514e-02,,0
+
+=== potrf (Cholesky factorization) ===
+POTRF,uplo=U n=16,7.535270e-02,,0
+POTRF,uplo=L n=16,8.356869e-02,,0
+
+=== sytrf (Symmetric LDL^T) ===
+SYTRF,uplo=U n=16,3.453714e-02,,0
+SYTRF,uplo=L n=16,6.381656e-02,,0
+
+=== geqrf (QR factorization) ===
+GEQRF,m=16 n=16,2.577886e-01,1.353779e+00,0
+
+=== gelqf (LQ factorization) ===
+GELQF,m=16 n=16,3.646978e-01,1.797022e+00,0
+
+=== gebrd (Bidiagonal reduction) ===
+GEBRD,m=16 n=16,3.110604e-01,8.745146e-01,0
+
+=== sytrd (Tridiagonal reduction) ===
+SYTRD,uplo=U n=16,3.508290e-01,1.271259e+00,0
+SYTRD,uplo=L n=16,5.078111e-01,1.774961e+00,0
+
+=== gesv (General solve) ===
+GESV,n=16 nrhs=4,2.647441e-02,,0
+
+=== posv (SPD solve) ===
+POSV,uplo=U n=16 nrhs=4,4.337351e-02,,0
+POSV,uplo=L n=16 nrhs=4,4.229701e-02,,0
+
+=== sysv (Symmetric solve) ===
+SYSV,uplo=U n=16 nrhs=4,6.396311e-02,,0
+SYSV,uplo=L n=16 nrhs=4,6.468858e-02,,0
+
+=== gbsv (Banded solve) ===
+GBSV,n=16 kl=2 ku=2 nrhs=4,4.179878e-02,,0
+
+=== gtsv (Tridiagonal solve) ===
+GTSV,n=16 nrhs=4,4.921762e-02,,0
+
+=== gels (Least squares) ===
+GELS,trans=N m=24 n=16 nrhs=4 (overdetermined),5.259289e-02,,0
+GELS,trans=N m=16 n=24 nrhs=4 (underdetermined),6.503183e-02,,0
+
+=== gelsd (Least squares (SVD)) ===
+GELSD,m=24 n=16 nrhs=4 rank=16,3.361158e-01,,0
+
+=== syev (Symmetric eigenvalue) ===
+SYEV,uplo=U,7.318309e-01,2.718634e+00,0
+SYEV,uplo=L,7.362349e-01,2.631578e+00,0
+
+=== syevd (Symmetric eigenvalue (D&C)) ===
+SYEVD,uplo=U,1.058954e+00,2.933463e+00,0
+SYEVD,uplo=L,9.048117e-01,2.704847e+00,0
+
+=== syevr (Symmetric eigenvalue (MRRR)) ===
+SYEVR,uplo=U,2.031638e+00,6.705413e+00,0
+SYEVR,uplo=L,2.005874e+00,2.953635e+00,0
+
+=== geev (General eigenvalue) ===
+GEEV,,1.353893e+00,,0
+
+=== gees (Schur decomposition) ===
+GEES,,2.041837e+00,4.111668e+00,0
+
+=== gesvd (SVD) ===
+GESVD,,9.818656e-01,2.202333e+00,0
+
+=== gesdd (SVD (D&C)) ===
+GESDD,,1.177285e+00,2.173187e+00,0
+
+=== sygv (Gen. symmetric eigenvalue) ===
+SYGV,uplo=U,1.876061e-01,,0
+SYGV,uplo=L,1.712965e-01,,0
+
+=== getrs (Solve from LU factors) ===
+GETRS,trans=N n=16 nrhs=4,4.298212e-02,,0
+GETRS,trans=T n=16 nrhs=4,3.316220e-02,,0
+
+=== getri (Inverse from LU) ===
+GETRI,,2.801105e-02,,0
+
+=== potrs (Solve from Cholesky) ===
+POTRS,uplo=U,3.896994e-02,,0
+POTRS,uplo=L,4.579689e-02,,0
+
+=== potri (Inverse from Cholesky) ===
+POTRI,uplo=U,4.748675e-02,,0
+POTRI,uplo=L,5.065748e-02,,0
+
+=== orgqr (Generate Q from QR) ===
+ORGQR,,1.863917e-01,1.585120e+00,0
+
+=== ormqr (Multiply by Q) ===
+ORMQR,side=L trans=N,1.792780e-01,,0
+ORMQR,side=L trans=T,1.339625e-01,,0
+
+=== gecon (Condition number estimate) ===
+GECON,norm=1,2.950497e-04,,0
+
+=== lange (Matrix norm) ===
+LANGE,norm=M m=16 n=16,0.000000e+00,0.000000e+00,true,0
+LANGE,norm=1 m=16 n=16,1.904019e-16,1.904019e-16,true,0
+LANGE,norm=I m=16 n=16,1.774545e-16,1.774545e-16,true,0
+LANGE,norm=F m=16 n=16,0.000000e+00,0.000000e+00,true,0
+
+=== lansy (Symmetric matrix norm) ===
+LANSY,norm=M uplo=U n=16,0.000000e+00,0.000000e+00,true,0
+LANSY,norm=1 uplo=U n=16,0.000000e+00,0.000000e+00,true,0
+LANSY,norm=I uplo=U n=16,0.000000e+00,0.000000e+00,true,0
+LANSY,norm=F uplo=U n=16,0.000000e+00,0.000000e+00,true,0
+LANSY,norm=M uplo=L n=16,0.000000e+00,0.000000e+00,true,0
+LANSY,norm=1 uplo=L n=16,1.769335e-16,1.769335e-16,true,0
+LANSY,norm=I uplo=L n=16,1.769335e-16,1.769335e-16,true,0
+LANSY,norm=F uplo=L n=16,0.000000e+00,0.000000e+00,true,0
+
+=== lacpy (Matrix copy) ===
+LACPY,uplo=U m=16 n=16,0.000000e+00,0.000000e+00,true,0
+LACPY,uplo=L m=16 n=16,0.000000e+00,0.000000e+00,true,0
+LACPY,uplo=A m=16 n=16,0.000000e+00,0.000000e+00,true,0
+
+=== laswp (Row permutations) ===
+LASWP,m=16 n=16 k1=1 k2=16,0.000000e+00,0.000000e+00,true,0
+

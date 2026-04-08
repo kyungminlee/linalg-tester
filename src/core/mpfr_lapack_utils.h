@@ -461,48 +461,4 @@ inline double get_eps(const TesterCtx &ctx)
     return 1.11e-16;
 }
 
-/* ------------------------------------------------------------------ */
-/* Positive definite matrix generator                                  */
-/* A = R^T R + n*I where R is random, ensuring SPD                     */
-/* Returns column-major n-by-n matrix in custom format, ld=n           */
-/* ------------------------------------------------------------------ */
-
-inline void *gen_positive_definite_array(int n,
-                                          std::size_t typesize,
-                                          mpfr_to_custom_fn from_mpfr,
-                                          custom_to_mpfr_fn to_mpfr,
-                                          mpfr_prec_t prec,
-                                          unsigned *seed)
-{
-    /* Generate random matrix R */
-    void *R_raw = gen_random_array(n * n, typesize, from_mpfr, prec, seed);
-
-    /* Convert to MPFR */
-    MpfrMatrix R(n, n, prec);
-    const char *rp = static_cast<const char *>(R_raw);
-    for (int j = 0; j < n; ++j)
-        for (int i = 0; i < n; ++i)
-            to_mpfr(R.at(i, j), rp + IDX(i, j, n) * typesize);
-
-    /* Compute A = R^T * R */
-    MpfrMatrix Rt(n, n, prec);
-    mpfr_mat_transpose(Rt, R);
-
-    MpfrMatrix A(n, n, prec);
-    mpfr_mat_mul_simple(A, Rt, R);
-
-    /* Add n*I to ensure well-conditioned */
-    MpfrScalar nval(prec);
-    mpfr_set_d(nval.get(), static_cast<double>(n), MPFR_RNDN);
-    for (int i = 0; i < n; ++i)
-        mpfr_add(A.at(i, i), A.at(i, i), nval.get(), MPFR_RNDN);
-
-    /* Convert back to custom format */
-    char *arr = static_cast<char *>(std::malloc(static_cast<std::size_t>(n) * n * typesize));
-    for (int j = 0; j < n; ++j)
-        for (int i = 0; i < n; ++i)
-            from_mpfr(arr + IDX(i, j, n) * typesize, A.at(i, j), MPFR_RNDN);
-
-    std::free(R_raw);
-    return arr;
-}
+/* gen_positive_definite_array is declared in generators.h */

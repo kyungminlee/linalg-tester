@@ -57,6 +57,37 @@ void test_getrf(const TesterCtx &ctx, void *lib, const char *sym,
     MpfrMatrix U(mn, n, prec);
     mpfr_extract_LU(A_fact, L, U);
 
+    /* -------------------------------------------------------------- */
+    /* Structural verification                                         */
+    /* -------------------------------------------------------------- */
+    bool structural_ok = true;
+
+    /* L must be unit lower triangular: L(i,i)==1, L(i,j)==0 for i<j */
+    for (int j = 0; j < mn && structural_ok; ++j) {
+        if (!mpfr_equal_p(L.at(j, j), L.at(j, j)) ||
+            mpfr_cmp_d(L.at(j, j), 1.0) != 0) {
+            structural_ok = false;
+        }
+        for (int i = 0; i < j && structural_ok; ++i) {
+            if (!mpfr_zero_p(L.at(i, j)))
+                structural_ok = false;
+        }
+    }
+
+    /* U must be upper triangular: U(i,j)==0 for i>j */
+    for (int j = 0; j < n && structural_ok; ++j) {
+        for (int i = j + 1; i < mn && structural_ok; ++i) {
+            if (!mpfr_zero_p(U.at(i, j)))
+                structural_ok = false;
+        }
+    }
+
+    /* IPIV values must be in range [1, m] (1-based) */
+    for (int i = 0; i < mn && structural_ok; ++i) {
+        if (ipiv[i] < 1 || ipiv[i] > m)
+            structural_ok = false;
+    }
+
     /* Compute L*U */
     MpfrMatrix LU(m, n, prec);
     mpfr_mat_mul_simple(LU, L, U);
@@ -80,8 +111,12 @@ void test_getrf(const TesterCtx &ctx, void *lib, const char *sym,
     lr.orthogonality = -1.0;
     lr.info = info;
 
-    char params_str[128];
-    std::snprintf(params_str, sizeof(params_str), "m=%d n=%d", m, n);
+    char params_str[256];
+    if (!structural_ok) {
+        std::snprintf(params_str, sizeof(params_str), "m=%d n=%d STRUCT_FAIL", m, n);
+    } else {
+        std::snprintf(params_str, sizeof(params_str), "m=%d n=%d", m, n);
+    }
     report_lapack_result("GETRF", params_str, lr, format);
 
     std::free(A);
