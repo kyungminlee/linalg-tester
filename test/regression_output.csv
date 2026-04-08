@@ -576,3 +576,123 @@ BLACS_GAMX2D,m=8 n=8 scope=A nprocs=1,true,0.000000e+00,0
 === blacs_gamn2d (BLACS global min) ===
 BLACS_GAMN2D,m=8 n=8 scope=A nprocs=1,true,0.000000e+00,0
 
+=== pgemm (Parallel matrix multiply) ===
+PGEMM,transa=N transb=N grid=1x1,4.990762e-15,7.873721e-17,true,0
+PGEMM,transa=N transb=T grid=1x1,6.736072e-16,6.235698e-17,true,0
+PGEMM,transa=T transb=N grid=1x1,1.963407e-15,6.834211e-17,true,0
+PGEMM,transa=T transb=T grid=1x1,2.646898e-15,7.788674e-17,true,0
+
+=== ptrsm (Parallel triangular solve) ===
+PTRSM,side=L uplo=U trans=N diag=N grid=1x1,3.233294e-16,1.235737e-16,true,0
+PTRSM,side=L uplo=U trans=N diag=U grid=1x1,2.537925e-15,9.541079e-17,true,0
+PTRSM,side=L uplo=U trans=T diag=N grid=1x1,8.878941e-16,9.922779e-17,true,0
+PTRSM,side=L uplo=U trans=T diag=U grid=1x1,2.320645e-15,1.169970e-16,true,0
+PTRSM,side=L uplo=L trans=N diag=N grid=1x1,4.474916e-13,1.095992e-16,true,0
+PTRSM,side=L uplo=L trans=N diag=U grid=1x1,3.891171e-15,1.281541e-16,true,0
+PTRSM,side=L uplo=L trans=T diag=N grid=1x1,2.608702e-15,1.671066e-16,true,0
+PTRSM,side=L uplo=L trans=T diag=U grid=1x1,1.296970e-14,9.362200e-17,true,0
+PTRSM,side=R uplo=U trans=N diag=N grid=1x1,5.319218e-13,8.363426e-17,true,0
+PTRSM,side=R uplo=U trans=N diag=U grid=1x1,3.756466e-15,9.355282e-17,true,0
+PTRSM,side=R uplo=U trans=T diag=N grid=1x1,3.041273e-16,8.713994e-17,true,0
+PTRSM,side=R uplo=U trans=T diag=U grid=1x1,1.446052e-14,9.416099e-17,true,0
+PTRSM,side=R uplo=L trans=N diag=N grid=1x1,7.574533e-16,1.148533e-16,true,0
+PTRSM,side=R uplo=L trans=N diag=U grid=1x1,9.550841e-16,9.649956e-17,true,0
+PTRSM,side=R uplo=L trans=T diag=N grid=1x1,6.984319e-16,8.751599e-17,true,0
+PTRSM,side=R uplo=L trans=T diag=U grid=1x1,2.407799e-15,9.370215e-17,true,0
+
+=== psymm (Parallel symmetric multiply) ===
+PSYMM,side=L uplo=U grid=1x1,2.775206e-14,9.388146e-17,true,0
+PSYMM,side=L uplo=L grid=1x1,1.722953e-14,1.040715e-16,true,0
+PSYMM,side=R uplo=U grid=1x1,5.346945e-15,1.083740e-16,true,0
+PSYMM,side=R uplo=L grid=1x1,1.043077e-15,8.159495e-17,true,0
+
+=== psyrk (Parallel symmetric rank-k) ===
+PSYRK,uplo=U trans=N grid=1x1,2.782069e-16,2.772425e-17,true,0
+PSYRK,uplo=U trans=T grid=1x1,2.941830e-16,2.608671e-17,true,0
+PSYRK,uplo=L trans=N grid=1x1,4.863791e-16,3.473792e-17,true,0
+PSYRK,uplo=L trans=T grid=1x1,7.695374e-16,2.974307e-17,true,0
+
+=== psyr2k (Parallel symmetric rank-2k) ===
+PSYR2K,uplo=U trans=N grid=1x1,5.400525e-16,6.139547e-17,true,0
+PSYR2K,uplo=U trans=T grid=1x1,6.040669e-16,8.455308e-17,true,0
+PSYR2K,uplo=L trans=N grid=1x1,1.958667e-15,6.354102e-17,true,0
+PSYR2K,uplo=L trans=T grid=1x1,1.234215e-15,7.881198e-17,true,0
+
+=== ptrmm (Parallel triangular multiply) ===
+PTRMM,side=L uplo=U trans=N diag=N grid=1x1,6.741321e-16,1.252978e-16,true,0
+PTRMM,side=L uplo=U trans=N diag=U grid=1x1,3.275632e-16,7.458037e-17,true,0
+PTRMM,side=L uplo=U trans=T diag=N grid=1x1,1.782943e-16,7.365070e-17,true,0
+PTRMM,side=L uplo=U trans=T diag=U grid=1x1,7.824471e-16,7.927665e-17,true,0
+PTRMM,side=L uplo=L trans=N diag=N grid=1x1,5.617193e-16,7.242290e-17,true,0
+PTRMM,side=L uplo=L trans=N diag=U grid=1x1,1.217887e-14,6.510424e-17,true,0
+PTRMM,side=L uplo=L trans=T diag=N grid=1x1,4.405263e-16,1.251286e-16,true,0
+PTRMM,side=L uplo=L trans=T diag=U grid=1x1,2.201951e-16,7.181481e-17,true,0
+PTRMM,side=R uplo=U trans=N diag=N grid=1x1,1.674214e-16,7.561580e-17,true,0
+PTRMM,side=R uplo=U trans=N diag=U grid=1x1,3.746698e-16,8.513479e-17,true,0
+PTRMM,side=R uplo=U trans=T diag=N grid=1x1,3.271005e-16,1.235816e-16,true,0
+PTRMM,side=R uplo=U trans=T diag=U grid=1x1,1.686576e-15,1.180174e-16,true,0
+PTRMM,side=R uplo=L trans=N diag=N grid=1x1,2.928039e-16,1.219125e-16,true,0
+PTRMM,side=R uplo=L trans=N diag=U grid=1x1,2.098189e-15,8.603293e-17,true,0
+PTRMM,side=R uplo=L trans=T diag=N grid=1x1,1.918201e-16,8.049690e-17,true,0
+PTRMM,side=R uplo=L trans=T diag=U grid=1x1,1.368217e-15,8.864357e-17,true,0
+
+=== pgemv (Parallel matrix-vector) ===
+PGEMV,trans=N grid=1x1,2.461665e-16,1.089926e-16,true,0
+PGEMV,trans=T grid=1x1,2.511355e-16,9.638375e-17,true,0
+
+=== psymv (Parallel symmetric MV) ===
+PSYMV,uplo=U grid=1x1,2.832099e-16,9.326664e-17,true,0
+PSYMV,uplo=L grid=1x1,5.933952e-15,9.091561e-17,true,0
+
+=== ptrmv (Parallel triangular MV) ===
+PTRMV,uplo=U trans=N diag=N grid=1x1,2.150179e-16,1.453962e-16,true,0
+PTRMV,uplo=U trans=N diag=U grid=1x1,1.199358e-16,9.982167e-17,true,0
+PTRMV,uplo=U trans=T diag=N grid=1x1,8.329817e-16,1.078157e-16,true,0
+PTRMV,uplo=U trans=T diag=U grid=1x1,1.558131e-16,7.741226e-17,true,0
+PTRMV,uplo=L trans=N diag=N grid=1x1,8.124249e-17,5.515566e-17,true,0
+PTRMV,uplo=L trans=N diag=U grid=1x1,1.208829e-14,4.599875e-17,true,0
+PTRMV,uplo=L trans=T diag=N grid=1x1,1.741053e-16,6.941118e-17,true,0
+PTRMV,uplo=L trans=T diag=U grid=1x1,1.143041e-16,8.887894e-17,true,0
+
+=== ptrsv (Parallel triangular solve) ===
+PTRSV,uplo=U trans=N diag=N grid=1x1,2.738043e-16,5.839175e-17,true,0
+PTRSV,uplo=U trans=N diag=U grid=1x1,2.516105e-16,1.168649e-16,true,0
+PTRSV,uplo=U trans=T diag=N grid=1x1,6.481204e-16,4.100201e-17,true,0
+PTRSV,uplo=U trans=T diag=U grid=1x1,7.998220e-17,5.618436e-17,true,0
+PTRSV,uplo=L trans=N diag=N grid=1x1,1.835604e-16,1.011651e-16,true,0
+PTRSV,uplo=L trans=N diag=U grid=1x1,3.745997e-15,7.472820e-17,true,0
+PTRSV,uplo=L trans=T diag=N grid=1x1,1.509157e-16,2.941037e-17,true,0
+PTRSV,uplo=L trans=T diag=U grid=1x1,1.174638e-15,1.012800e-16,true,0
+
+=== pger (Parallel rank-1 update) ===
+PGER,grid=1x1,3.339961e-15,4.630876e-17,true,0
+
+=== psyr (Parallel symmetric rank-1) ===
+PSYR,uplo=U grid=1x1,1.195055e-16,3.159750e-17,true,0
+PSYR,uplo=L grid=1x1,1.195055e-16,3.252464e-17,true,0
+
+=== psyr2 (Parallel symmetric rank-2) ===
+PSYR2,uplo=U grid=1x1,1.152032e-15,4.753614e-17,true,0
+PSYR2,uplo=L grid=1x1,5.561967e-16,5.399353e-17,true,0
+
+=== pswap (Parallel swap vectors) ===
+PSWAP,n=8 grid=1x1,0.000000e+00,0.000000e+00,true,0
+
+=== pscal (Parallel scale vector) ===
+PSCAL,n=8 grid=1x1,1.055677e-16,5.687782e-17,true,0
+
+=== pcopy (Parallel copy vector) ===
+PCOPY,n=8 grid=1x1,0.000000e+00,0.000000e+00,true,0
+
+=== paxpy (Parallel vector addition) ===
+PAXPY,n=8 grid=1x1,8.525689e-17,5.253661e-17,true,0
+
+=== pdot (Parallel dot product) ===
+PDOT,n=8 grid=1x1,4.540315e-17,4.540315e-17,true,0
+
+=== pnrm2 (Parallel Euclidean norm) ===
+PNRM2,n=8 grid=1x1,7.356109e-18,7.356109e-18,true,0
+
+=== pasum (Parallel absolute sum) ===
+PASUM,n=8 grid=1x1,3.362510e-17,3.362510e-17,true,0
+
