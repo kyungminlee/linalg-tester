@@ -274,8 +274,92 @@ target_include_directories(linalg_tester PRIVATE third_party)
 # Conversion libraries (shared libraries for testing)
 # ---------------------------------------------------------------------------
 
+add_library(float_conv SHARED examples/openblas_float/float_conv.c)
+target_link_libraries(float_conv PRIVATE PkgConfig::GMP PkgConfig::MPFR)
+
 add_library(double_conv SHARED examples/openblas_double/double_conv.c)
 target_link_libraries(double_conv PRIVATE PkgConfig::GMP PkgConfig::MPFR)
 
 add_library(complex_double_conv SHARED examples/openblas_complex_double/complex_double_conv.c)
 target_link_libraries(complex_double_conv PRIVATE PkgConfig::GMP PkgConfig::MPFR)
+
+# ---------------------------------------------------------------------------
+# Mirror tester
+# ---------------------------------------------------------------------------
+
+set(MIRROR_CORE_SOURCES
+    mirror/mirror_gen.cpp
+    mirror/mirror_error.cpp
+    mirror/mirror_report.cpp
+)
+
+set(MIRROR_BLAS3_SOURCES
+    mirror/blas/level3/gemm.cpp
+    mirror/blas/level3/trsm.cpp
+    mirror/blas/level3/symm.cpp
+    mirror/blas/level3/syrk.cpp
+    mirror/blas/level3/syr2k.cpp
+    mirror/blas/level3/trmm.cpp
+    mirror/blas/level3/hemm.cpp
+    mirror/blas/level3/herk.cpp
+    mirror/blas/level3/her2k.cpp
+)
+
+set(MIRROR_BLAS2_SOURCES
+    mirror/blas/level2/gemv.cpp
+    mirror/blas/level2/symv.cpp
+    mirror/blas/level2/trmv.cpp
+    mirror/blas/level2/trsv.cpp
+    mirror/blas/level2/ger.cpp
+    mirror/blas/level2/syr.cpp
+    mirror/blas/level2/syr2.cpp
+    mirror/blas/level2/gbmv.cpp
+    mirror/blas/level2/sbmv.cpp
+    mirror/blas/level2/tbmv.cpp
+    mirror/blas/level2/tbsv.cpp
+    mirror/blas/level2/spmv.cpp
+    mirror/blas/level2/tpmv.cpp
+    mirror/blas/level2/tpsv.cpp
+    mirror/blas/level2/spr.cpp
+    mirror/blas/level2/spr2.cpp
+    mirror/blas/level2/hemv.cpp
+    mirror/blas/level2/hbmv.cpp
+    mirror/blas/level2/hpmv.cpp
+    mirror/blas/level2/geru.cpp
+    mirror/blas/level2/gerc.cpp
+    mirror/blas/level2/her.cpp
+    mirror/blas/level2/hpr.cpp
+    mirror/blas/level2/her2.cpp
+    mirror/blas/level2/hpr2.cpp
+)
+
+set(MIRROR_BLAS1_SOURCES
+    mirror/blas/level1/rotg.cpp
+    mirror/blas/level1/rotmg.cpp
+    mirror/blas/level1/rot.cpp
+    mirror/blas/level1/rotm.cpp
+    mirror/blas/level1/swap.cpp
+    mirror/blas/level1/scal.cpp
+    mirror/blas/level1/copy.cpp
+    mirror/blas/level1/axpy.cpp
+    mirror/blas/level1/dot.cpp
+    mirror/blas/level1/nrm2.cpp
+    mirror/blas/level1/asum.cpp
+    mirror/blas/level1/iamax.cpp
+    mirror/blas/level1/dotc.cpp
+    mirror/blas/level1/dotu.cpp
+    mirror/blas/level1/crot.cpp
+    mirror/blas/level1/crscal.cpp
+)
+
+add_executable(mirror_tester
+    mirror/main.cpp
+    ${MIRROR_CORE_SOURCES}
+    ${MIRROR_BLAS3_SOURCES}
+    ${MIRROR_BLAS2_SOURCES}
+    ${MIRROR_BLAS1_SOURCES}
+    ${CORE_SOURCES}
+)
+
+target_link_libraries(mirror_tester PRIVATE PkgConfig::GMP PkgConfig::MPFR)
+target_include_directories(mirror_tester PRIVATE third_party ${CMAKE_SOURCE_DIR})

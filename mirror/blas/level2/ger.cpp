@@ -1,0 +1,81 @@
+/* ger.cpp -- Mirror tester for BLAS Level 2 GER */
+
+#include "../mirror_blas2.h"
+#include "../../mirror_gen.h"
+#include "../../mirror_error.h"
+#include "../../mirror_report.h"
+#include "../../../src/core/mpfr_types.h"
+#include "../../../src/core/loader.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+/* Fortran-ABI function pointer -- NO character arguments, NO hidden lengths */
+extern "C" typedef void (*ger_fn_t)(
+    const int  *m,      const int  *n,
+    const void *alpha,
+    const void *x,      const int  *incx,
+    const void *y,      const int  *incy,
+    void       *A,      const int  *lda
+);
+
+void mirror_test_ger(const MirrorSide &a, const MirrorSide &b,
+                      const TestParams &params, const MirrorConfig &config)
+{
+    int m = params.m, n = params.n;
+    int incx = params.incx, incy = params.incy;
+    mpfr_prec_t prec = config.prec;
+    int lda = m + params.ld_pad;
+
+    unsigned seed_A  = params.seed;
+    unsigned seed_x  = params.seed + 1;
+    unsigned seed_y  = params.seed + 2;
+    unsigned seed_ab = params.seed + 3;
+
+    MpfrMatrix A_mpfr(m, n, prec);
+    MpfrMatrix x_mpfr(m, 1, prec);
+    MpfrMatrix y_mpfr(n, 1, prec);
+    MpfrScalar alpha_mpfr(prec);
+
+    gen_mpfr_random_matrix(A_mpfr, prec, &seed_A);
+    gen_mpfr_random_vector(x_mpfr, prec, &seed_x);
+    gen_mpfr_random_vector(y_mpfr, prec, &seed_y);
+    gen_mpfr_random_scalar(alpha_mpfr, prec, &seed_ab);
+
+    auto run_side = [&](const MirrorSide &side, MpfrMatrix &result) {
+        void *native_A     = mpfr_mat_to_native(A_mpfr, lda, side.ctx);
+        void *native_x     = mpfr_vec_to_native(x_mpfr, incx, side.ctx);
+        void *native_y     = mpfr_vec_to_native(y_mpfr, incy, side.ctx);
+        void *native_alpha = mpfr_scalar_to_native(alpha_mpfr, side.ctx);
+
+        auto *fn = reinterpret_cast<ger_fn_t>(
+            load_sym(side.lib, side.sym.c_str()));
+        fn(&m, &n,
+           native_alpha,
+           native_x, &incx,
+           native_y, &incy,
+           native_A, &lda);
+
+        custom_to_mpfr_mat(result, native_A, lda, side.ctx);
+
+        std::free(native_A);
+        std::free(native_x);
+        std::free(native_y);
+        std::free(native_alpha);
+    };
+
+    MpfrMatrix res_a(m, n, prec); run_side(a, res_a);
+    MpfrMatrix res_b(m, n, prec); run_side(b, res_b);
+
+    const MpfrMatrix &ref = (config.reference == "a") ? res_a : res_b;
+    const MpfrMatrix &tst = (config.reference == "a") ? res_b : res_a;
+    ErrorResult err = compute_error_mpfr_matrix(ref, tst, prec);
+
+    char params_str[128];
+    std::snprintf(params_str, sizeof(params_str),
+                  "m=%d n=%d incx=%d incy=%d",
+                  m, n, incx, incy);
+    mirror_report_result("GER", params_str, err,
+                          nullptr, nullptr, config);
+}
