@@ -756,3 +756,121 @@ PDOTC,n=8 grid=1x1,1.201282e-16,1.201282e-16,true,0
 === pdotu (Parallel unconj. dot product) ===
 PDOTU,n=8 grid=1x1,8.134652e-17,8.134652e-17,true,0
 
+=== pgetrf (Distributed LU factorization) ===
+PGETRF,n=8 nrhs=4 grid=1x1,4.889752e-02,,0
+
+=== ppotrf (Distributed Cholesky) ===
+PPOTRF,uplo=L n=8 nrhs=4 grid=1x1,1.224905e-01,,0
+PPOTRF,uplo=U n=8 nrhs=4 grid=1x1,1.224905e-01,,0
+
+=== pgeqrf (Distributed QR factorization) ===
+PGEQRF,m=8 n=8 grid=1x1,3.296217e+01,,0
+
+=== pgesv (Distributed general solve) ===
+PGESV,n=8 nrhs=4 grid=1x1,4.889752e-02,,0
+
+=== pposv (Distributed SPD solve) ===
+PPOSV,uplo=L n=8 nrhs=4 grid=1x1,1.224905e-01,,0
+PPOSV,uplo=U n=8 nrhs=4 grid=1x1,1.224905e-01,,0
+
+=== pgetrs (Distributed solve from LU) ===
+PGETRS,n=8 nrhs=8 grid=1x1,6.309099e-02,,0
+
+=== ppotrs (Distributed solve from Cholesky) ===
+PPOTRS,uplo=U n=8 nrhs=8 grid=1x1,1.357015e-01,,0
+PPOTRS,uplo=L n=8 nrhs=8 grid=1x1,1.072754e-01,,0
+
+=== ptrtri (Distributed triangular inverse) ===
+PTRTRI,uplo=U diag=N n=8 grid=1x1,1.735652e+00,,0
+PTRTRI,uplo=L diag=N n=8 grid=1x1,1.845270e+00,,0
+
+=== placpy (Distributed matrix copy) ===
+PLACPY,uplo=A m=8 n=8 grid=1x1,0.000000e+00,,0
+
+=== plange (Distributed matrix norm) ===
+PLANGE,norm=M m=8 n=8 grid=1x1,0.000000e+00,,0
+PLANGE,norm=1 m=8 n=8 grid=1x1,0.000000e+00,,0
+PLANGE,norm=I m=8 n=8 grid=1x1,0.000000e+00,,0
+PLANGE,norm=F m=8 n=8 grid=1x1,0.000000e+00,,0
+
+=== plansy (Distributed symmetric norm) ===
+PLANSY,norm=M uplo=U n=8 grid=1x1,0.000000e+00,,0
+PLANSY,norm=1 uplo=U n=8 grid=1x1,0.000000e+00,,0
+PLANSY,norm=I uplo=U n=8 grid=1x1,0.000000e+00,,0
+PLANSY,norm=F uplo=U n=8 grid=1x1,0.000000e+00,,0
+PLANSY,norm=M uplo=L n=8 grid=1x1,0.000000e+00,,0
+PLANSY,norm=1 uplo=L n=8 grid=1x1,0.000000e+00,,0
+PLANSY,norm=I uplo=L n=8 grid=1x1,0.000000e+00,,0
+PLANSY,norm=F uplo=L n=8 grid=1x1,0.000000e+00,,0
+
+=== psyev (Distributed symmetric eigenvalue) ===
+PSYEV,n=8 grid=1x1,1.605717e+00,,0
+
+=== psyevd (Distributed symmetric eig (D&C)) ===
+PSYEVD,n=8 grid=1x1,1.605717e+00,,0
+
+=== pgesvd (Distributed SVD) ===
+PGESVD,m=8 n=8 grid=1x1,8.586335e-01,,0
+
+=== pgemr2d (Distributed matrix redistribute) ===
+PGEMR2D,m=8 n=8 mb1=8 nb1=8 mb2=4 nb2=4 grid=1x1,0.000000e+00,,0
+
+=== cpgetrf (Complex distributed LU) ===
+CPGETRF,n=8 nrhs=4 grid=1x1,1.187395e-01,,0
+
+=== cppotrf (Complex distributed Cholesky) ===
+CPPOTRF,uplo=L n=8 nrhs=4 grid=1x1,1.317454e-01,,0
+CPPOTRF,uplo=U n=8 nrhs=4 grid=1x1,1.120298e-01,,0
+
+=== cpgeqrf (Complex distributed QR) ===
+CPGEQRF,m=8 n=8 grid=1x1,1.675384e+01,,0
+
+=== cpgesv (Complex distributed solve) ===
+CPGESV,n=8 nrhs=4 grid=1x1,1.187395e-01,,0
+
+=== cpposv (Complex HPD solve) ===
+CPPOSV,uplo=L n=8 nrhs=4 grid=1x1,1.317454e-01,,0
+CPPOSV,uplo=U n=8 nrhs=4 grid=1x1,1.120298e-01,,0
+
+=== cpgetrs (Complex distributed solve from LU) ===
+CPGETRS,n=8 nrhs=8 grid=1x1,1.591594e-01,,0
+
+=== cppotrs (Complex solve from Cholesky) ===
+CPPOTRS,uplo=U n=8 nrhs=8 grid=1x1,1.076389e-01,,0
+CPPOTRS,uplo=L n=8 nrhs=8 grid=1x1,1.265818e-01,,0
+
+=== cptrtri (Complex triangular inverse) ===
+CPTRTRI,uplo=U diag=N n=8 grid=1x1,4.670776e+00,,0
+CPTRTRI,uplo=L diag=N n=8 grid=1x1,2.018789e+00,,0
+
+=== cplacpy (Complex distributed copy) ===
+CPLACPY,uplo=A m=8 n=8 grid=1x1,0.000000e+00,,0
+
+=== cplange (Complex distributed norm) ===
+CPLANGE,norm=M m=8 n=8 grid=1x1,1.505210e+00,,0
+CPLANGE,norm=1 m=8 n=8 grid=1x1,0.000000e+00,,0
+CPLANGE,norm=I m=8 n=8 grid=1x1,0.000000e+00,,0
+CPLANGE,norm=F m=8 n=8 grid=1x1,1.230443e+00,,0
+
+=== planhe (Distributed Hermitian norm) ===
+PLANHE,norm=M uplo=U n=8 grid=1x1,0.000000e+00,,0
+PLANHE,norm=1 uplo=U n=8 grid=1x1,0.000000e+00,,0
+PLANHE,norm=I uplo=U n=8 grid=1x1,0.000000e+00,,0
+PLANHE,norm=F uplo=U n=8 grid=1x1,1.214126e+00,,0
+PLANHE,norm=M uplo=L n=8 grid=1x1,0.000000e+00,,0
+PLANHE,norm=1 uplo=L n=8 grid=1x1,1.145348e+00,,0
+PLANHE,norm=I uplo=L n=8 grid=1x1,1.145348e+00,,0
+PLANHE,norm=F uplo=L n=8 grid=1x1,0.000000e+00,,0
+
+=== pheev (Hermitian eigenvalue) ===
+PHEEV,n=8 grid=1x1,1.375018e+00,,0
+
+=== pheevd (Hermitian eigenvalue (D&C)) ===
+PHEEVD,n=8 grid=1x1,1.394515e+00,,0
+
+=== cpgesvd (Complex distributed SVD) ===
+CPGESVD,m=8 n=8 grid=1x1,9.566207e-01,,0
+
+=== cpgemr2d (Complex matrix redistribute) ===
+CPGEMR2D,m=8 n=8 mb1=8 nb1=8 mb2=4 nb2=4 grid=1x1,0.000000e+00,,0
+

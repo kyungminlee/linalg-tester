@@ -42,10 +42,13 @@
 - [x] **Verification:** All 442 regression tests pass (328 BLAS/LAPACK + 8 BLACS + 106 PBLAS).
 
 ## 8. ScaLAPACK Support (NEW)
-- [ ] **Infrastructure:** Global-to-local coordinate mapping (`INDXG2L`, `INDXG2P`).
-- [ ] **Routines:** Implement test drivers for ScaLAPACK factorizations (`P_GETRF`, `P_POTRF`) and solvers (`P_GESV`).
-- [ ] **Verification:** Distributed residual computation using MPFR references gathered from the process grid.
-- [ ] **Redistribution:** Test matrix redistribution routines (`P_GEMR2D`).
+- [x] **Infrastructure:** MPFR LU/Cholesky solvers for reference computation, gather utilities, PDGEMM-based residual verification.
+- [x] **Factorizations:** Test drivers for `PGETRF`, `PPOTRF`, `PGEQRF` (real + complex, 6 drivers). Verified via solve residual and QR reconstruction.
+- [x] **Solvers:** Test drivers for `PGESV`, `PPOSV` (real + complex, 4 drivers). Verified via `||AX-B||/(||A||*||X||*n*eps)`.
+- [x] **Auxiliary:** Test drivers for `PGETRS`, `PPOTRS`, `PTRTRI`, `PLACPY`, `PLANGE`, `PLANSY`/`PLANHE` (real + complex, 12 drivers).
+- [x] **Eigenvalue/SVD:** Test drivers for `PSYEV`, `PSYEVD`, `PGESVD`, `PHEEV`, `PHEEVD` (real + complex, 6 drivers). Verified via `||AZ-ZD||/(||A||*n*eps)`.
+- [x] **Redistribution:** Test drivers for `PGEMR2D` (real + complex, 2 drivers). Verified via element-wise comparison.
+- [x] **Verification:** All 500 regression tests pass (328 BLAS/LAPACK + 8 BLACS + 106 PBLAS + 29 real ScaLAPACK + 29 complex ScaLAPACK).
 
 ## 9. Build & CI
 - [x] **Regression Tests:** Add an automated regression test script (`test/run_regression.sh`) that verifies all routines against a reference BLAS/LAPACK.

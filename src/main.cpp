@@ -9,6 +9,7 @@
 #include "lapack/auxiliary.h"
 #include "blacs/blacs.h"
 #include "pblas/pblas.h"
+#include "scalapack/scalapack.h"
 
 #include "../third_party/CLI11.hpp"
 
@@ -218,6 +219,46 @@ static const RoutineEntry routines[] = {
     // PBLAS Level 1 (complex-only)
     {"pdotc",  "dotc",  "cpblas1","Parallel conj. dot product",   "conj(x)^T * y",                              test_pdotc},
     {"pdotu",  "dotu",  "cpblas1","Parallel unconj. dot product", "x^T * y (no conjugation)",                   test_pdotu},
+    // ScaLAPACK Factorizations
+    {"pgetrf", "getrf", "scalapack_fact", "Distributed LU factorization",      "PA = LU",                       test_pgetrf},
+    {"ppotrf", "potrf", "scalapack_fact", "Distributed Cholesky",              "A = LL^T",                      test_ppotrf},
+    {"pgeqrf", "geqrf", "scalapack_fact", "Distributed QR factorization",      "A = QR",                        test_pgeqrf},
+    // ScaLAPACK Solvers
+    {"pgesv",  "gesv",  "scalapack_solve","Distributed general solve",         "AX = B (LU)",                   test_pgesv},
+    {"pposv",  "posv",  "scalapack_solve","Distributed SPD solve",             "AX = B (Cholesky)",             test_pposv},
+    // ScaLAPACK Auxiliary
+    {"pgetrs", "getrs", "scalapack_aux",  "Distributed solve from LU",         "op(A)*X = B",                   test_pgetrs},
+    {"ppotrs", "potrs", "scalapack_aux",  "Distributed solve from Cholesky",   "A*X = B",                       test_ppotrs},
+    {"ptrtri", "trtri", "scalapack_aux",  "Distributed triangular inverse",    "A^{-1}",                        test_ptrtri},
+    {"placpy", "lacpy", "scalapack_aux",  "Distributed matrix copy",           "B = A",                         test_placpy},
+    {"plange", "lange", "scalapack_aux",  "Distributed matrix norm",           "||A||",                         test_plange},
+    {"plansy", "lansy", "scalapack_aux",  "Distributed symmetric norm",        "||A||_sym",                     test_plansy},
+    // ScaLAPACK Eigenvalue/SVD
+    {"psyev",  "syev",  "scalapack_eig",  "Distributed symmetric eigenvalue",  "A = V*D*V^T",                  test_psyev},
+    {"psyevd", "syevd", "scalapack_eig",  "Distributed symmetric eig (D&C)",   "A = V*D*V^T",                  test_psyevd},
+    {"pgesvd", "gesvd", "scalapack_eig",  "Distributed SVD",                   "A = U*S*V^T",                  test_pgesvd},
+    // ScaLAPACK Redistribution
+    {"pgemr2d","gemr2d","scalapack_redist","Distributed matrix redistribute",  "B = A (new layout)",            test_pgemr2d},
+    // Complex ScaLAPACK Factorizations
+    {"cpgetrf","getrf", "cscalapack_fact", "Complex distributed LU",           "PA = LU",                       test_cpgetrf},
+    {"cppotrf","potrf", "cscalapack_fact", "Complex distributed Cholesky",     "A = LL^H",                      test_cppotrf},
+    {"cpgeqrf","geqrf", "cscalapack_fact", "Complex distributed QR",           "A = QR",                        test_cpgeqrf},
+    // Complex ScaLAPACK Solvers
+    {"cpgesv", "gesv",  "cscalapack_solve","Complex distributed solve",        "AX = B (LU)",                   test_cpgesv},
+    {"cpposv", "posv",  "cscalapack_solve","Complex HPD solve",                "AX = B (Cholesky)",             test_cpposv},
+    // Complex ScaLAPACK Auxiliary
+    {"cpgetrs","getrs", "cscalapack_aux",  "Complex distributed solve from LU","op(A)*X = B",                   test_cpgetrs},
+    {"cppotrs","potrs", "cscalapack_aux",  "Complex solve from Cholesky",      "A*X = B",                       test_cppotrs},
+    {"cptrtri","trtri", "cscalapack_aux",  "Complex triangular inverse",       "A^{-1}",                        test_cptrtri},
+    {"cplacpy","lacpy", "cscalapack_aux",  "Complex distributed copy",         "B = A",                         test_cplacpy},
+    {"cplange","lange", "cscalapack_aux",  "Complex distributed norm",         "||A||",                         test_cplange},
+    {"planhe", "lanhe", "cscalapack_aux",  "Distributed Hermitian norm",       "||A||_herm",                    test_planhe},
+    // Complex ScaLAPACK Eigenvalue/SVD
+    {"pheev",  "heev",  "cscalapack_eig",  "Hermitian eigenvalue",             "A = V*D*V^H",                  test_pheev},
+    {"pheevd", "heevd", "cscalapack_eig",  "Hermitian eigenvalue (D&C)",       "A = V*D*V^H",                  test_pheevd},
+    {"cpgesvd","gesvd", "cscalapack_eig",  "Complex distributed SVD",          "A = U*S*V^H",                  test_cpgesvd},
+    // Complex ScaLAPACK Redistribution
+    {"cpgemr2d","gemr2d","cscalapack_redist","Complex matrix redistribute",    "B = A (new layout)",            test_cpgemr2d},
 };
 
 static constexpr int num_routines = sizeof(routines) / sizeof(routines[0]);
@@ -247,9 +288,11 @@ static std::string derive_sym(const std::string &prefix, const RoutineEntry &r) 
     // BLACS context routines: no type prefix, just fortran_name + "_"
     if (r.fortran_name && std::strncmp(r.fortran_name, "blacs_", 6) == 0)
         return std::string(r.fortran_name) + "_";
-    // PBLAS: p{prefix}{base}_ (e.g., pdgemm_, pzhemm_)
+    // PBLAS / ScaLAPACK: p{prefix}{base}_ (e.g., pdgemm_, pdgetrf_, pzhemm_)
     if (std::strncmp(r.category, "pblas", 5) == 0 ||
-        std::strncmp(r.category, "cpblas", 6) == 0)
+        std::strncmp(r.category, "cpblas", 6) == 0 ||
+        std::strncmp(r.category, "scalapack_", 10) == 0 ||
+        std::strncmp(r.category, "cscalapack_", 11) == 0)
         return "p" + prefix + base + "_";
     return prefix + base + "_";
 }
@@ -379,6 +422,26 @@ int main(int argc, char **argv) {
                     std::printf("PBLAS Level 1:\n");
                 else if (std::strcmp(cur_cat, "cpblas1") == 0)
                     std::printf("Complex PBLAS Level 1:\n");
+                else if (std::strcmp(cur_cat, "scalapack_fact") == 0)
+                    std::printf("ScaLAPACK Factorizations:\n");
+                else if (std::strcmp(cur_cat, "scalapack_solve") == 0)
+                    std::printf("ScaLAPACK Solvers:\n");
+                else if (std::strcmp(cur_cat, "scalapack_aux") == 0)
+                    std::printf("ScaLAPACK Auxiliary:\n");
+                else if (std::strcmp(cur_cat, "scalapack_eig") == 0)
+                    std::printf("ScaLAPACK Eigenvalue/SVD:\n");
+                else if (std::strcmp(cur_cat, "scalapack_redist") == 0)
+                    std::printf("ScaLAPACK Redistribution:\n");
+                else if (std::strcmp(cur_cat, "cscalapack_fact") == 0)
+                    std::printf("Complex ScaLAPACK Factorizations:\n");
+                else if (std::strcmp(cur_cat, "cscalapack_solve") == 0)
+                    std::printf("Complex ScaLAPACK Solvers:\n");
+                else if (std::strcmp(cur_cat, "cscalapack_aux") == 0)
+                    std::printf("Complex ScaLAPACK Auxiliary:\n");
+                else if (std::strcmp(cur_cat, "cscalapack_eig") == 0)
+                    std::printf("Complex ScaLAPACK Eigenvalue/SVD:\n");
+                else if (std::strcmp(cur_cat, "cscalapack_redist") == 0)
+                    std::printf("Complex ScaLAPACK Redistribution:\n");
             }
             std::printf("  %-8s %-35s %s\n", r.name, r.description, r.formula);
         }
@@ -473,7 +536,13 @@ int main(int argc, char **argv) {
                      routine_name == "pblas" || routine_name == "pblas3" ||
                      routine_name == "pblas2" || routine_name == "pblas1" ||
                      routine_name == "cpblas" || routine_name == "cpblas3" ||
-                     routine_name == "cpblas2" || routine_name == "cpblas1");
+                     routine_name == "cpblas2" || routine_name == "cpblas1" ||
+                     routine_name == "scalapack" || routine_name == "scalapack_fact" ||
+                     routine_name == "scalapack_solve" || routine_name == "scalapack_eig" ||
+                     routine_name == "scalapack_aux" || routine_name == "scalapack_redist" ||
+                     routine_name == "cscalapack" || routine_name == "cscalapack_fact" ||
+                     routine_name == "cscalapack_solve" || routine_name == "cscalapack_eig" ||
+                     routine_name == "cscalapack_aux" || routine_name == "cscalapack_redist");
 
     if (is_batch && sym_prefix.empty() && sym_name.empty()) {
         std::fprintf(stderr, "Error: batch mode requires --sym-prefix (or --sym for single routine)\n");
@@ -506,6 +575,15 @@ int main(int argc, char **argv) {
                 else if (routine_name == "cpblas" &&
                          std::strncmp(r.category, "cpblas", 6) == 0)
                     ; /* match */
+                /* "scalapack" matches all scalapack_* and cscalapack_* categories */
+                else if (routine_name == "scalapack" &&
+                         (std::strncmp(r.category, "scalapack_", 10) == 0 ||
+                          std::strncmp(r.category, "cscalapack_", 11) == 0))
+                    ; /* match */
+                /* "cscalapack" matches all cscalapack_* categories */
+                else if (routine_name == "cscalapack" &&
+                         std::strncmp(r.category, "cscalapack_", 11) == 0)
+                    ; /* match */
                 else
                     continue;
             }
@@ -513,7 +591,8 @@ int main(int argc, char **argv) {
             if (!ctx.complex_mode &&
                 (std::strncmp(r.category, "cblas", 5) == 0 ||
                  std::strncmp(r.category, "clapack_", 8) == 0 ||
-                 std::strncmp(r.category, "cpblas", 6) == 0))
+                 std::strncmp(r.category, "cpblas", 6) == 0 ||
+                 std::strncmp(r.category, "cscalapack_", 11) == 0))
                 continue;
             /* Skip BLACS categories unless explicitly requested.
                BLACS requires a ScaLAPACK library, not a BLAS/LAPACK library. */
@@ -529,6 +608,15 @@ int main(int argc, char **argv) {
                 routine_name != "cpblas" &&
                 std::strncmp(routine_name.c_str(), "pblas", 5) != 0 &&
                 std::strncmp(routine_name.c_str(), "cpblas", 6) != 0)
+                continue;
+            /* Skip ScaLAPACK categories unless explicitly requested.
+               ScaLAPACK requires a ScaLAPACK library. */
+            if ((std::strncmp(r.category, "scalapack_", 10) == 0 ||
+                 std::strncmp(r.category, "cscalapack_", 11) == 0) &&
+                routine_name != "scalapack" &&
+                routine_name != "cscalapack" &&
+                std::strncmp(routine_name.c_str(), "scalapack_", 10) != 0 &&
+                std::strncmp(routine_name.c_str(), "cscalapack_", 11) != 0)
                 continue;
             std::string sym = sym_prefix.empty() ? sym_name : derive_sym(sym_prefix, r);
             run_routine(r, ctx, lib, sym, params, format);

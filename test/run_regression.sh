@@ -323,6 +323,65 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Step 3f: Run ScaLAPACK tests (if ScaLAPACK is available)
+# ---------------------------------------------------------------------------
+if [[ -n "$SCALAPACK_LIB" ]]; then
+    echo ""
+    echo "--- Running ScaLAPACK tests (single process, m=8 n=8 k=4) ---"
+    SCALAPACK_OUTPUT="${REPO_ROOT}/test/scalapack_regression_output.csv"
+
+    SCALAPACK_OUTPUT="${REPO_ROOT}/test/scalapack_regression_output.csv"
+
+    "${TESTER}" \
+        --routine scalapack \
+        --sym-prefix d \
+        --lib "${SCALAPACK_LIB}" \
+        --conv-lib "${CONV_LIB}" \
+        --typesize 8 \
+        --m 8 --n 8 --k 4 \
+        --format csv \
+        2>&1 | tee "${SCALAPACK_OUTPUT}"
+
+    cat "${SCALAPACK_OUTPUT}" >> "${OUTPUT_FILE}"
+
+    # Complex ScaLAPACK tests
+    if [[ -f "$COMPLEX_CONV_LIB" ]]; then
+        echo ""
+        echo "--- Running complex ScaLAPACK tests (m=8 n=8 k=4) ---"
+        CSCALAPACK_OUTPUT="${REPO_ROOT}/test/cscalapack_regression_output.csv"
+
+        COMPLEX_ABI="hidden"
+        case "$OS" in
+            Darwin)
+                ARCH=$(uname -m)
+                if [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]]; then
+                    COMPLEX_ABI="register"
+                fi
+                ;;
+        esac
+
+        CSCALAPACK_OUTPUT="${REPO_ROOT}/test/cscalapack_regression_output.csv"
+
+        "${TESTER}" \
+            --complex \
+            --routine cscalapack \
+            --sym-prefix z \
+            --lib "${SCALAPACK_LIB}" \
+            --conv-lib "${COMPLEX_CONV_LIB}" \
+            --typesize 16 \
+            --m 8 --n 8 --k 4 \
+            --complex-return-abi "${COMPLEX_ABI}" \
+            --format csv \
+            2>&1 | tee "${CSCALAPACK_OUTPUT}"
+
+        cat "${CSCALAPACK_OUTPUT}" >> "${OUTPUT_FILE}"
+    fi
+else
+    echo ""
+    echo "--- Skipping ScaLAPACK tests (ScaLAPACK not found) ---"
+fi
+
+# ---------------------------------------------------------------------------
 # Step 4: Parse CSV output and check thresholds
 # ---------------------------------------------------------------------------
 echo ""

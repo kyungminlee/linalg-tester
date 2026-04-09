@@ -211,6 +211,39 @@ set(BLACS_SOURCES
     src/blacs/combine/blacs_gamn2d.cpp
 )
 
+set(SCALAPACK_SOURCES
+    src/scalapack/factorizations/pgetrf.cpp
+    src/scalapack/factorizations/ppotrf.cpp
+    src/scalapack/factorizations/pgeqrf.cpp
+    src/scalapack/factorizations/cpgetrf.cpp
+    src/scalapack/factorizations/cppotrf.cpp
+    src/scalapack/factorizations/cpgeqrf.cpp
+    src/scalapack/solvers/pgesv.cpp
+    src/scalapack/solvers/pposv.cpp
+    src/scalapack/solvers/cpgesv.cpp
+    src/scalapack/solvers/cpposv.cpp
+    src/scalapack/auxiliary/pgetrs.cpp
+    src/scalapack/auxiliary/ppotrs.cpp
+    src/scalapack/auxiliary/ptrtri.cpp
+    src/scalapack/auxiliary/placpy.cpp
+    src/scalapack/auxiliary/plange.cpp
+    src/scalapack/auxiliary/plansy.cpp
+    src/scalapack/auxiliary/cpgetrs.cpp
+    src/scalapack/auxiliary/cppotrs.cpp
+    src/scalapack/auxiliary/cptrtri.cpp
+    src/scalapack/auxiliary/cplacpy.cpp
+    src/scalapack/auxiliary/cplange.cpp
+    src/scalapack/auxiliary/planhe.cpp
+    src/scalapack/eigenvalues/psyev.cpp
+    src/scalapack/eigenvalues/psyevd.cpp
+    src/scalapack/eigenvalues/pgesvd.cpp
+    src/scalapack/eigenvalues/pheev.cpp
+    src/scalapack/eigenvalues/pheevd.cpp
+    src/scalapack/eigenvalues/cpgesvd.cpp
+    src/scalapack/redistribution/pgemr2d.cpp
+    src/scalapack/redistribution/cpgemr2d.cpp
+)
+
 add_executable(linalg_tester
     src/main.cpp
     ${CORE_SOURCES}
@@ -227,6 +260,7 @@ add_executable(linalg_tester
     ${CLAPACK_AUX_SOURCES}
     ${BLACS_SOURCES}
     ${PBLAS_SOURCES}
+    ${SCALAPACK_SOURCES}
 )
 
 target_link_libraries(linalg_tester PRIVATE PkgConfig::GMP PkgConfig::MPFR)
