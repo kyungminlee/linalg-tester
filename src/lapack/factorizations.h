@@ -35,3 +35,5 @@ void test_hetrf(const TesterCtx &ctx, void *lib, const char *sym,
                 const TestParams &params, const std::string &format);
 void test_hetrd(const TesterCtx &ctx, void *lib, const char *sym,
                 const TestParams &params, const std::string &format);
+void test_csytrf(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);

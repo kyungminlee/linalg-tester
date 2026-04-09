@@ -20,7 +20,7 @@
 - [x] **Infrastructure:** Implement complex variants of LAPACK utilities in `src/core/mpfr_lapack_complex_utils.h`.
 - [x] **Generators:** Add `gen_hermitian_positive_definite_array` and fix `get_eps` for complex types.
 - [x] **Testers:** Add 33 complex LAPACK test drivers as separate files (7 factorizations, 7 solvers, 8 eigenvalue/SVD, 11 auxiliary).
-- [x] **Verification:** All 328 regression tests pass (237 real + 32 complex BLAS + 59 complex LAPACK).
+- [x] **Verification:** All 340 regression tests pass (237 real + 32 complex BLAS + 71 complex LAPACK).
 
 ## 5. LAPACK Infrastructure (Phase 6+ Gaps)
 - [x] **Reporting Refactor:** Replace the `ErrorResult` hack in `src/lapack/lapack_common.h` with a proper `report_lapack_result` that displays residuals and orthogonality correctly in all formats (Text, JSON, CSV).
@@ -33,13 +33,13 @@
 - [x] **Generators:** Implement distributed matrix generators that partition MPFR reference matrices across the process grid.
 - [x] **Testers:** Add test drivers for core PBLAS routines (P_GEMM, P_TRSM, etc.) using MPI-aware verification.
 - [x] **Verification:** Implement global-to-local and local-to-global MPFR gather/scatter for error computation.
-- [x] **Verification:** All 442 regression tests pass (328 BLAS/LAPACK + 8 BLACS + 106 PBLAS real+complex).
+- [x] **Verification:** All 454 regression tests pass (340 BLAS/LAPACK + 8 BLACS + 106 PBLAS real+complex).
 
 ## 7. BLACS Support (NEW)
 - [x] **Infrastructure:** Wrappers for context creation, process grid management (`BLACS_GRIDINIT`, `BLACS_GRIDEXIT`).
 - [x] **Communication:** Point-to-point (`GESD2D`/`GERV2D`) and broadcast (`GEBS2D`/`GEBR2D`) verification.
 - [x] **Topology:** Test different process topologies (1D row/column, 2D square/rectangular).
-- [x] **Verification:** All 442 regression tests pass (328 BLAS/LAPACK + 8 BLACS + 106 PBLAS).
+- [x] **Verification:** All 454 regression tests pass (340 BLAS/LAPACK + 8 BLACS + 106 PBLAS).
 
 ## 8. ScaLAPACK Support (NEW)
 - [x] **Infrastructure:** MPFR LU/Cholesky solvers for reference computation, gather utilities, PDGEMM-based residual verification.
@@ -48,7 +48,7 @@
 - [x] **Auxiliary:** Test drivers for `PGETRS`, `PPOTRS`, `PTRTRI`, `PLACPY`, `PLANGE`, `PLANSY`/`PLANHE` (real + complex, 12 drivers).
 - [x] **Eigenvalue/SVD:** Test drivers for `PSYEV`, `PSYEVD`, `PGESVD`, `PHEEV`, `PHEEVD` (real + complex, 6 drivers). Verified via `||AZ-ZD||/(||A||*n*eps)`.
 - [x] **Redistribution:** Test drivers for `PGEMR2D` (real + complex, 2 drivers). Verified via element-wise comparison.
-- [x] **Verification:** All 500 regression tests pass (328 BLAS/LAPACK + 8 BLACS + 106 PBLAS + 29 real ScaLAPACK + 29 complex ScaLAPACK).
+- [x] **Verification:** All 520 regression tests pass (340 BLAS/LAPACK + 8 BLACS + 106 PBLAS + 29 real ScaLAPACK + 37 complex ScaLAPACK).
 
 ## 9. Build & CI
 - [x] **Regression Tests:** Add an automated regression test script (`test/run_regression.sh`) that verifies all routines against a reference BLAS/LAPACK.

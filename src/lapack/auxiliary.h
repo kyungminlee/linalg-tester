@@ -51,3 +51,5 @@ void test_clacpy(const TesterCtx &ctx, void *lib, const char *sym,
                  const TestParams &params, const std::string &format);
 void test_claswp(const TesterCtx &ctx, void *lib, const char *sym,
                  const TestParams &params, const std::string &format);
+void test_clansy(const TesterCtx &ctx, void *lib, const char *sym,
+                 const TestParams &params, const std::string &format);

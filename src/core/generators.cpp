@@ -493,6 +493,55 @@ void *gen_hermitian_array(int n, char uplo,
 }
 
 /* ------------------------------------------------------------------ */
+/* gen_complex_symmetric_array  (A = A^T: no conjugation on mirror)    */
+/* ------------------------------------------------------------------ */
+
+void *gen_complex_symmetric_array(int n, char uplo,
+                                   std::size_t typesize,
+                                   mpfr_to_custom_complex_fn from_mpfr_complex,
+                                   mpfr_prec_t prec, unsigned *seed)
+{
+    char *arr = static_cast<char *>(
+        std::calloc(static_cast<std::size_t>(n) * n, typesize));
+    if (!arr) { std::perror("calloc"); std::exit(EXIT_FAILURE); }
+
+    mpfr_t re, im;
+    mpfr_init2(re, prec);
+    mpfr_init2(im, prec);
+
+    auto gen = make_rng(seed);
+    std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+    for (int j = 0; j < n; ++j) {
+        for (int i = 0; i < n; ++i) {
+            char *elem_ij = arr + (static_cast<std::size_t>(j) * n + i) * typesize;
+            char *elem_ji = arr + (static_cast<std::size_t>(i) * n + j) * typesize;
+
+            if (i == j) {
+                /* Diagonal: complex (symmetric allows complex diagonal) */
+                mpfr_set_d(re, rand_val(gen, dist), MPFR_RNDN);
+                mpfr_set_d(im, rand_val(gen, dist), MPFR_RNDN);
+                from_mpfr_complex(elem_ij, re, im, MPFR_RNDN);
+            } else if ((uplo == 'U' && i < j) || (uplo == 'L' && i > j)) {
+                /* Stored triangle: generate (re, im), mirror without conjugation */
+                double rv = rand_val(gen, dist);
+                double iv = rand_val(gen, dist);
+                mpfr_set_d(re, rv, MPFR_RNDN);
+                mpfr_set_d(im, iv, MPFR_RNDN);
+                from_mpfr_complex(elem_ij, re, im, MPFR_RNDN);
+                /* Same value in mirrored position (no conjugation) */
+                from_mpfr_complex(elem_ji, re, im, MPFR_RNDN);
+            }
+        }
+    }
+
+    mpfr_clear(re);
+    mpfr_clear(im);
+    update_seed(gen, seed);
+    return static_cast<void *>(arr);
+}
+
+/* ------------------------------------------------------------------ */
 /* gen_hermitian_band_array                                             */
 /* ------------------------------------------------------------------ */
 

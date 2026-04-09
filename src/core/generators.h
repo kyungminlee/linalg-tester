@@ -54,6 +54,11 @@ void *gen_random_complex_array(int count, std::size_t typesize,
                                 mpfr_to_custom_complex_fn from_mpfr_complex,
                                 mpfr_prec_t prec, unsigned *seed);
 
+void *gen_complex_symmetric_array(int n, char uplo,
+                                   std::size_t typesize,
+                                   mpfr_to_custom_complex_fn from_mpfr_complex,
+                                   mpfr_prec_t prec, unsigned *seed);
+
 void *gen_hermitian_array(int n, char uplo,
                            std::size_t typesize,
                            mpfr_to_custom_complex_fn from_mpfr_complex,

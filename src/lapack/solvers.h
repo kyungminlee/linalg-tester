@@ -35,3 +35,5 @@ void test_cgelsd(const TesterCtx &ctx, void *lib, const char *sym,
                  const TestParams &params, const std::string &format);
 void test_hesv(const TesterCtx &ctx, void *lib, const char *sym,
                const TestParams &params, const std::string &format);
+void test_csysv(const TesterCtx &ctx, void *lib, const char *sym,
+                const TestParams &params, const std::string &format);

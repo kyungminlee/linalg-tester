@@ -46,6 +46,7 @@ void test_cptrtri(const TesterCtx &ctx, void *lib, const char *sym, const TestPa
 void test_cplacpy(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
 void test_cplange(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
 void test_planhe(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
+void test_cplansy(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);
 
 /* Complex ScaLAPACK eigenvalue/SVD */
 void test_pheev(const TesterCtx &ctx, void *lib, const char *sym, const TestParams &params, const std::string &format);

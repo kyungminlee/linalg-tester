@@ -135,6 +135,7 @@ static const RoutineEntry routines[] = {
     {"cgelqf", "gelqf", "clapack_fact", "Complex LQ factorization",        "A = LQ",                    test_cgelqf},
     {"cgebrd", "gebrd", "clapack_fact", "Complex bidiagonal reduction",    "A = U*B*V^H",               test_cgebrd},
     {"hetrf",  nullptr, "clapack_fact", "Hermitian LDL^H",                 "A = LDL^H",                 test_hetrf},
+    {"csytrf", nullptr, "clapack_fact", "Complex symmetric LDL^T",         "A = LDL^T",                 test_csytrf},
     {"hetrd",  nullptr, "clapack_fact", "Hermitian tridiag reduction",     "A = Q*T*Q^H",               test_hetrd},
     // Complex LAPACK Solvers
     {"cgesv",  "gesv",  "clapack_solve","Complex general solve",           "AX = B (LU)",               test_cgesv},
@@ -144,6 +145,7 @@ static const RoutineEntry routines[] = {
     {"cgels",  "gels",  "clapack_solve","Complex least squares",          "min||Ax-b||_2",             test_cgels},
     {"cgelsd", "gelsd", "clapack_solve","Complex least squares (SVD)",    "min||Ax-b||_2 (SVD)",       test_cgelsd},
     {"hesv",   nullptr, "clapack_solve","Hermitian solve",                "AX = B (LDL^H)",            test_hesv},
+    {"csysv",  nullptr, "clapack_solve","Complex symmetric solve",         "AX = B (LDL^T)",            test_csysv},
     // Complex LAPACK Eigenvalue / SVD
     {"heev",   nullptr, "clapack_eig",  "Hermitian eigenvalue",           "A = V*D*V^H",               test_heev},
     {"heevd",  nullptr, "clapack_eig",  "Hermitian eigenvalue (D&C)",     "A = V*D*V^H",               test_heevd},
@@ -163,6 +165,7 @@ static const RoutineEntry routines[] = {
     {"cgecon", "gecon", "clapack_aux",  "Complex condition number",       "rcond(A)",                  test_cgecon},
     {"clange", "lange", "clapack_aux",  "Complex matrix norm",            "||A||",                     test_clange},
     {"lanhe",  nullptr, "clapack_aux",  "Hermitian matrix norm",          "||A||_herm",                test_lanhe},
+    {"clansy", nullptr, "clapack_aux",  "Complex symmetric norm",          "||A||_sym",                 test_clansy},
     {"clacpy", "lacpy", "clapack_aux",  "Complex matrix copy",            "B = A",                     test_clacpy},
     {"claswp", "laswp", "clapack_aux",  "Complex row permutations",       "P*A",                       test_claswp},
     // BLACS Context
@@ -253,6 +256,7 @@ static const RoutineEntry routines[] = {
     {"cplacpy","lacpy", "cscalapack_aux",  "Complex distributed copy",         "B = A",                         test_cplacpy},
     {"cplange","lange", "cscalapack_aux",  "Complex distributed norm",         "||A||",                         test_cplange},
     {"planhe", "lanhe", "cscalapack_aux",  "Distributed Hermitian norm",       "||A||_herm",                    test_planhe},
+    {"cplansy","lansy", "cscalapack_aux",  "Complex symmetric norm",           "||A||_sym",                     test_cplansy},
     // Complex ScaLAPACK Eigenvalue/SVD
     {"pheev",  "heev",  "cscalapack_eig",  "Hermitian eigenvalue",             "A = V*D*V^H",                  test_pheev},
     {"pheevd", "heevd", "cscalapack_eig",  "Hermitian eigenvalue (D&C)",       "A = V*D*V^H",                  test_pheevd},

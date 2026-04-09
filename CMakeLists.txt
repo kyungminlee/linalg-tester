@@ -126,6 +126,7 @@ set(CLAPACK_FACT_SOURCES
     src/lapack/factorizations/cgebrd.cpp
     src/lapack/factorizations/hetrf.cpp
     src/lapack/factorizations/hetrd.cpp
+    src/lapack/factorizations/csytrf.cpp
 )
 
 set(CLAPACK_SOLVE_SOURCES
@@ -136,6 +137,7 @@ set(CLAPACK_SOLVE_SOURCES
     src/lapack/solvers/cgels.cpp
     src/lapack/solvers/cgelsd.cpp
     src/lapack/solvers/hesv.cpp
+    src/lapack/solvers/csysv.cpp
 )
 
 set(CLAPACK_EIG_SOURCES
@@ -161,6 +163,7 @@ set(CLAPACK_AUX_SOURCES
     src/lapack/auxiliary/lanhe.cpp
     src/lapack/auxiliary/clacpy.cpp
     src/lapack/auxiliary/claswp.cpp
+    src/lapack/auxiliary/clansy.cpp
 )
 
 set(PBLAS_SOURCES
@@ -234,6 +237,7 @@ set(SCALAPACK_SOURCES
     src/scalapack/auxiliary/cplacpy.cpp
     src/scalapack/auxiliary/cplange.cpp
     src/scalapack/auxiliary/planhe.cpp
+    src/scalapack/auxiliary/cplansy.cpp
     src/scalapack/eigenvalues/psyev.cpp
     src/scalapack/eigenvalues/psyevd.cpp
     src/scalapack/eigenvalues/pgesvd.cpp
