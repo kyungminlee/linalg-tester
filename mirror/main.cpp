@@ -13,6 +13,7 @@
 #include "pblas/mirror_pblas2.h"
 #include "pblas/mirror_pblas1.h"
 #include "blacs/mirror_blacs.h"
+#include "scalapack/mirror_scalapack.h"
 #include "../src/core/loader.h"
 
 #include <CLI11.hpp>
@@ -216,6 +217,51 @@ static const MirrorRoutineEntry routines[] = {
     {"blacs_gsum2d", "gsum2d",  "blacs", "Global sum",            "combine sum",        mirror_test_blacs_gsum2d},
     {"blacs_gamx2d", "gamx2d",  "blacs", "Global max",            "combine max",        mirror_test_blacs_gamx2d},
     {"blacs_gamn2d", "gamn2d",  "blacs", "Global min",            "combine min",        mirror_test_blacs_gamn2d},
+
+    /* ---- ScaLAPACK Factorizations (real) ---- */
+    {"pgetrf",  nullptr,  "scalapack_fact",  "Distributed LU fact",       "A = P*L*U",          mirror_test_pgetrf},
+    {"ppotrf",  nullptr,  "scalapack_fact",  "Distributed Cholesky",      "A = L*L^T",          mirror_test_ppotrf},
+    {"pgeqrf",  nullptr,  "scalapack_fact",  "Distributed QR fact",       "A = Q*R",            mirror_test_pgeqrf},
+    /* ---- ScaLAPACK Factorizations (complex) ---- */
+    {"cpgetrf", "pgetrf", "cscalapack_fact", "Complex distributed LU",    "A = P*L*U",          mirror_test_cpgetrf},
+    {"cppotrf", "ppotrf", "cscalapack_fact", "Complex distributed Cholesky","A = L*L^H",        mirror_test_cppotrf},
+    {"cpgeqrf", "pgeqrf", "cscalapack_fact", "Complex distributed QR",    "A = Q*R",            mirror_test_cpgeqrf},
+
+    /* ---- ScaLAPACK Solvers (real) ---- */
+    {"pgesv",   nullptr,  "scalapack_solve", "Distributed general solve", "A*X = B",            mirror_test_pgesv},
+    {"pposv",   nullptr,  "scalapack_solve", "Distributed SPD solve",     "A*X = B (A SPD)",    mirror_test_pposv},
+    /* ---- ScaLAPACK Solvers (complex) ---- */
+    {"cpgesv",  "pgesv",  "cscalapack_solve","Complex distributed solve", "A*X = B",            mirror_test_cpgesv},
+    {"cpposv",  "pposv",  "cscalapack_solve","Complex distributed SPD solve","A*X = B (A HPD)", mirror_test_cpposv},
+
+    /* ---- ScaLAPACK Auxiliary (real) ---- */
+    {"pgetrs",  nullptr,  "scalapack_aux",   "Distributed LU solve",      "op(A)*X = B",        mirror_test_pgetrs},
+    {"ppotrs",  nullptr,  "scalapack_aux",   "Distributed Cholesky solve", "A*X = B",           mirror_test_ppotrs},
+    {"ptrtri",  nullptr,  "scalapack_aux",   "Distributed tri inverse",    "A^-1 (triangular)", mirror_test_ptrtri},
+    {"placpy",  nullptr,  "scalapack_aux",   "Distributed matrix copy",    "B = A",             mirror_test_placpy},
+    {"plange",  nullptr,  "scalapack_aux",   "Distributed matrix norm",    "||A||",             mirror_test_plange},
+    {"plansy",  nullptr,  "scalapack_aux",   "Distributed sym norm",       "||A|| (sym)",       mirror_test_plansy},
+    /* ---- ScaLAPACK Auxiliary (complex) ---- */
+    {"cpgetrs", "pgetrs", "cscalapack_aux",  "Complex distributed LU solve","op(A)*X = B",      mirror_test_cpgetrs},
+    {"cppotrs", "ppotrs", "cscalapack_aux",  "Complex distributed Chol solve","A*X = B",        mirror_test_cppotrs},
+    {"cptrtri", "ptrtri", "cscalapack_aux",  "Complex distributed tri inv", "A^-1 (tri)",       mirror_test_cptrtri},
+    {"cplacpy", "placpy", "cscalapack_aux",  "Complex distributed copy",    "B = A",            mirror_test_cplacpy},
+    {"cplange", "plange", "cscalapack_aux",  "Complex distributed norm",    "||A||",            mirror_test_cplange},
+    {"planhe",  nullptr,  "cscalapack_aux",  "Distributed Hermitian norm",  "||A|| (herm)",     mirror_test_planhe},
+    {"cplansy", "plansy", "cscalapack_aux",  "Complex distributed sym norm","||A|| (csym)",     mirror_test_cplansy},
+
+    /* ---- ScaLAPACK Eigenvalues (real) ---- */
+    {"psyev",   nullptr,  "scalapack_eig",   "Distributed sym eigenvalues", "A*v = lambda*v",   mirror_test_psyev},
+    {"psyevd",  nullptr,  "scalapack_eig",   "Distributed sym eig (D&C)",   "A*v = lambda*v",   mirror_test_psyevd},
+    {"pgesvd",  nullptr,  "scalapack_eig",   "Distributed SVD",             "A = U*S*V^T",      mirror_test_pgesvd},
+    /* ---- ScaLAPACK Eigenvalues (complex) ---- */
+    {"pheev",   nullptr,  "cscalapack_eig",  "Distributed Herm eigenvalues","A*v = lambda*v",   mirror_test_pheev},
+    {"pheevd",  nullptr,  "cscalapack_eig",  "Distributed Herm eig (D&C)", "A*v = lambda*v",   mirror_test_pheevd},
+    {"cpgesvd", "pgesvd", "cscalapack_eig",  "Complex distributed SVD",    "A = U*S*V^H",      mirror_test_cpgesvd},
+
+    /* ---- ScaLAPACK Redistribution ---- */
+    {"pgemr2d",  nullptr,  "scalapack_redist","Distributed redistribution", "B = A (reblock)",  mirror_test_pgemr2d},
+    {"cpgemr2d", "pgemr2d","cscalapack_redist","Complex redistribution",   "B = A (reblock)",  mirror_test_cpgemr2d},
 };
 
 static constexpr int num_routines = sizeof(routines) / sizeof(routines[0]);
@@ -240,6 +286,10 @@ static bool is_batch(const std::string &name) {
         "lapack_eig", "clapack_eig", "lapack_aux", "clapack_aux",
         "pblas", "cpblas", "pblas1", "pblas2", "pblas3", "cpblas1", "cpblas2", "cpblas3",
         "blacs",
+        "scalapack", "cscalapack",
+        "scalapack_fact", "cscalapack_fact", "scalapack_solve", "cscalapack_solve",
+        "scalapack_aux", "cscalapack_aux", "scalapack_eig", "cscalapack_eig",
+        "scalapack_redist", "cscalapack_redist",
     };
     for (auto b : batches)
         if (name == b) return true;
@@ -255,7 +305,9 @@ static bool category_matches(const char *cat, const std::string &batch) {
     if (batch == "clapack") return std::strstr(cat, "clapack") != nullptr;
     if (batch == "pblas")   return std::strstr(cat, "pblas") != nullptr;
     if (batch == "cpblas")  return std::strncmp(cat, "cpblas", 6) == 0;
-    if (batch == "blacs")   return std::strcmp(cat, "blacs") == 0;
+    if (batch == "blacs")      return std::strcmp(cat, "blacs") == 0;
+    if (batch == "scalapack")  return std::strstr(cat, "scalapack") != nullptr;
+    if (batch == "cscalapack") return std::strncmp(cat, "cscalapack", 10) == 0;
     /* Exact match */
     return batch == cat;
 }
@@ -470,7 +522,8 @@ int main(int argc, char **argv) {
             const char *cat = routines[i].category;
             bool is_complex_routine = (std::strncmp(cat, "cblas", 5) == 0 ||
                                         std::strncmp(cat, "clapack", 7) == 0 ||
-                                        std::strncmp(cat, "cpblas", 6) == 0);
+                                        std::strncmp(cat, "cpblas", 6) == 0 ||
+                                        std::strncmp(cat, "cscalapack", 10) == 0);
             if (is_complex_routine && (!complex_a || !complex_b))
                 continue;
 

@@ -487,6 +487,52 @@ set(MIRROR_BLACS_SOURCES
     mirror/blacs/combine/blacs_gamn2d.cpp
 )
 
+set(MIRROR_SCALAPACK_FACT_SOURCES
+    mirror/scalapack/factorizations/pgetrf.cpp
+    mirror/scalapack/factorizations/ppotrf.cpp
+    mirror/scalapack/factorizations/pgeqrf.cpp
+    mirror/scalapack/factorizations/cpgetrf.cpp
+    mirror/scalapack/factorizations/cppotrf.cpp
+    mirror/scalapack/factorizations/cpgeqrf.cpp
+)
+
+set(MIRROR_SCALAPACK_SOLVE_SOURCES
+    mirror/scalapack/solvers/pgesv.cpp
+    mirror/scalapack/solvers/pposv.cpp
+    mirror/scalapack/solvers/cpgesv.cpp
+    mirror/scalapack/solvers/cpposv.cpp
+)
+
+set(MIRROR_SCALAPACK_AUX_SOURCES
+    mirror/scalapack/auxiliary/pgetrs.cpp
+    mirror/scalapack/auxiliary/ppotrs.cpp
+    mirror/scalapack/auxiliary/ptrtri.cpp
+    mirror/scalapack/auxiliary/placpy.cpp
+    mirror/scalapack/auxiliary/plange.cpp
+    mirror/scalapack/auxiliary/plansy.cpp
+    mirror/scalapack/auxiliary/cpgetrs.cpp
+    mirror/scalapack/auxiliary/cppotrs.cpp
+    mirror/scalapack/auxiliary/cptrtri.cpp
+    mirror/scalapack/auxiliary/cplacpy.cpp
+    mirror/scalapack/auxiliary/cplange.cpp
+    mirror/scalapack/auxiliary/planhe.cpp
+    mirror/scalapack/auxiliary/cplansy.cpp
+)
+
+set(MIRROR_SCALAPACK_EIG_SOURCES
+    mirror/scalapack/eigenvalues/psyev.cpp
+    mirror/scalapack/eigenvalues/psyevd.cpp
+    mirror/scalapack/eigenvalues/pgesvd.cpp
+    mirror/scalapack/eigenvalues/pheev.cpp
+    mirror/scalapack/eigenvalues/pheevd.cpp
+    mirror/scalapack/eigenvalues/cpgesvd.cpp
+)
+
+set(MIRROR_SCALAPACK_REDIST_SOURCES
+    mirror/scalapack/redistribution/pgemr2d.cpp
+    mirror/scalapack/redistribution/cpgemr2d.cpp
+)
+
 add_executable(mirror_tester
     mirror/main.cpp
     ${MIRROR_CORE_SOURCES}
@@ -501,6 +547,11 @@ add_executable(mirror_tester
     ${MIRROR_PBLAS2_SOURCES}
     ${MIRROR_PBLAS1_SOURCES}
     ${MIRROR_BLACS_SOURCES}
+    ${MIRROR_SCALAPACK_FACT_SOURCES}
+    ${MIRROR_SCALAPACK_SOLVE_SOURCES}
+    ${MIRROR_SCALAPACK_AUX_SOURCES}
+    ${MIRROR_SCALAPACK_EIG_SOURCES}
+    ${MIRROR_SCALAPACK_REDIST_SOURCES}
     ${CORE_SOURCES}
 )
 
