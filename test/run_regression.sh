@@ -171,15 +171,12 @@ if [[ -f "$COMPLEX_CONV_LIB" ]]; then
     COMPLEX_OUTPUT="${REPO_ROOT}/test/complex_regression_output.csv"
 
     # Determine complex return ABI
+    # Modern gfortran on x86_64/arm64 returns complex in registers
     COMPLEX_ABI="hidden"
-    case "$OS" in
-        Darwin)
-            ARCH=$(uname -m)
-            if [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]]; then
-                COMPLEX_ABI="register"
-            fi
-            ;;
-    esac
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" || "$ARCH" == "aarch64" ]]; then
+        COMPLEX_ABI="register"
+    fi
 
     for cat in cblas3 cblas2 cblas1; do
         "${TESTER}" \
@@ -293,14 +290,10 @@ if [[ -n "$SCALAPACK_LIB" ]]; then
     CPBLAS_OUTPUT="${REPO_ROOT}/test/cpblas_regression_output.csv"
 
     COMPLEX_ABI="hidden"
-    case "$OS" in
-        Darwin)
-            ARCH=$(uname -m)
-            if [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]]; then
-                COMPLEX_ABI="register"
-            fi
-            ;;
-    esac
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" || "$ARCH" == "aarch64" ]]; then
+        COMPLEX_ABI="register"
+    fi
 
     for cat in cpblas3 cpblas2 cpblas1; do
         "${TESTER}" \
@@ -351,14 +344,10 @@ if [[ -n "$SCALAPACK_LIB" ]]; then
         CSCALAPACK_OUTPUT="${REPO_ROOT}/test/cscalapack_regression_output.csv"
 
         COMPLEX_ABI="hidden"
-        case "$OS" in
-            Darwin)
-                ARCH=$(uname -m)
-                if [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]]; then
-                    COMPLEX_ABI="register"
-                fi
-                ;;
-        esac
+        ARCH=$(uname -m)
+        if [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" || "$ARCH" == "aarch64" ]]; then
+            COMPLEX_ABI="register"
+        fi
 
         CSCALAPACK_OUTPUT="${REPO_ROOT}/test/cscalapack_regression_output.csv"
 
