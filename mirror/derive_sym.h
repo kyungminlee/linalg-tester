@@ -29,5 +29,14 @@ inline std::string derive_sym(const std::string &prefix,
         return prefix + "scal_";
     }
 
+    /* PBLAS: p<prefix><basename>_ (e.g. pgemm -> pdgemm_) */
+    if (r.category &&
+        (std::strncmp(r.category, "pblas", 5) == 0 ||
+         std::strncmp(r.category, "cpblas", 6) == 0)) {
+        if (base[0] == 'p')
+            return std::string("p") + prefix + (base + 1) + "_";
+    }
+
+    /* Default: <prefix><base>_ */
     return prefix + base + "_";
 }

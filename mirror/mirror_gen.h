@@ -41,6 +41,22 @@ void gen_mpfr_packed_symmetric(MpfrMatrix &dst, int n, char uplo,
 void gen_mpfr_packed_triangular(MpfrMatrix &dst, int n, char uplo, char diag,
                                  mpfr_prec_t prec, unsigned *seed);
 
+/* Symmetric positive-definite: A = random_symmetric + n*I */
+void gen_mpfr_positive_definite_matrix(MpfrMatrix &dst, mpfr_prec_t prec,
+                                        unsigned *seed);
+
+/* Diagonal-dominant symmetric (for indefinite solvers like SYSV) */
+void gen_mpfr_diag_dominant_symmetric(MpfrMatrix &dst, char uplo,
+                                       mpfr_prec_t prec, unsigned *seed);
+
+/* GBSV band storage: ldab = 2*kl+ku+1 (extra rows for pivoting) */
+void gen_mpfr_gbsv_band_matrix(MpfrMatrix &dst, int n, int kl, int ku,
+                                 mpfr_prec_t prec, unsigned *seed);
+
+/* Tridiagonal with diagonal dominance (for GTSV) */
+void gen_mpfr_tridiagonal(MpfrMatrix &dl, MpfrMatrix &d, MpfrMatrix &du,
+                            int n, mpfr_prec_t prec, unsigned *seed);
+
 /* Complex MPFR-first generators */
 void gen_mpfr_random_complex_matrix(MpfrComplexMatrix &dst,
                                      mpfr_prec_t prec, unsigned *seed);
@@ -63,6 +79,33 @@ void gen_mpfr_hermitian_band_matrix(MpfrComplexMatrix &dst, int n, int k,
 /* Packed hermitian */
 void gen_mpfr_packed_hermitian(MpfrComplexMatrix &dst, int n, char uplo,
                                 mpfr_prec_t prec, unsigned *seed);
+
+/* Hermitian positive-definite: A = random_hermitian + n*I */
+void gen_mpfr_hermitian_positive_definite(MpfrComplexMatrix &dst,
+                                           mpfr_prec_t prec, unsigned *seed);
+
+/* Diagonal-dominant hermitian (for HESV) */
+void gen_mpfr_diag_dominant_hermitian(MpfrComplexMatrix &dst, char uplo,
+                                       mpfr_prec_t prec, unsigned *seed);
+
+/* Diagonal-dominant complex symmetric (for CSYSV) */
+void gen_mpfr_diag_dominant_complex_symmetric(MpfrComplexMatrix &dst,
+                                               char uplo, mpfr_prec_t prec,
+                                               unsigned *seed);
+
+/* Complex band storage for CGBSV: ldab = 2*kl+ku+1 */
+void gen_mpfr_complex_gbsv_band_matrix(MpfrComplexMatrix &dst, int n,
+                                         int kl, int ku, mpfr_prec_t prec,
+                                         unsigned *seed);
+
+/* Complex tridiagonal with diagonal dominance (for CGTSV) */
+void gen_mpfr_complex_tridiagonal(MpfrComplexMatrix &dl, MpfrComplexMatrix &d,
+                                    MpfrComplexMatrix &du, int n,
+                                    mpfr_prec_t prec, unsigned *seed);
+
+/* Complex symmetric matrix */
+void gen_mpfr_complex_symmetric_matrix(MpfrComplexMatrix &dst, char uplo,
+                                        mpfr_prec_t prec, unsigned *seed);
 
 /* ------------------------------------------------------------------ */
 /* Native materializers: MPFR -> void* native array                    */

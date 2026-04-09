@@ -1,10 +1,18 @@
-/* main.cpp -- Mirror tester: compare two BLAS libraries */
+/* main.cpp -- Mirror tester: compare two libraries */
 
 #include "mirror_ctx.h"
 #include "derive_sym.h"
 #include "blas/mirror_blas3.h"
 #include "blas/mirror_blas2.h"
 #include "blas/mirror_blas1.h"
+#include "lapack/factorizations.h"
+#include "lapack/solvers.h"
+#include "lapack/eigenvalues.h"
+#include "lapack/auxiliary.h"
+#include "pblas/mirror_pblas3.h"
+#include "pblas/mirror_pblas2.h"
+#include "pblas/mirror_pblas1.h"
+#include "blacs/mirror_blacs.h"
 #include "../src/core/loader.h"
 
 #include <CLI11.hpp>
@@ -20,18 +28,18 @@
 /* ------------------------------------------------------------------ */
 
 static const MirrorRoutineEntry routines[] = {
-    /* BLAS Level 3 (real) */
+    /* ---- BLAS Level 3 (real) ---- */
     {"gemm",   nullptr, "blas3", "General matrix multiply",     "C = alpha*op(A)*op(B) + beta*C", mirror_test_gemm},
     {"trsm",   nullptr, "blas3", "Triangular solve (matrix)",   "op(A)*X = alpha*B",              mirror_test_trsm},
     {"symm",   nullptr, "blas3", "Symmetric multiply",          "C = alpha*A*B + beta*C",         mirror_test_symm},
     {"syrk",   nullptr, "blas3", "Symmetric rank-k update",     "C = alpha*A*A^T + beta*C",       mirror_test_syrk},
     {"syr2k",  nullptr, "blas3", "Symmetric rank-2k update",    "C = alpha*A*B^T + ... + beta*C", mirror_test_syr2k},
     {"trmm",   nullptr, "blas3", "Triangular multiply (matrix)","B = alpha*op(A)*B",              mirror_test_trmm},
-    /* BLAS Level 3 (complex-only) */
+    /* ---- BLAS Level 3 (complex) ---- */
     {"hemm",   nullptr, "cblas3","Hermitian multiply",          "C = alpha*A*B + beta*C",         mirror_test_hemm},
     {"herk",   nullptr, "cblas3","Hermitian rank-k update",     "C = alpha*A*A^H + beta*C",       mirror_test_herk},
     {"her2k",  nullptr, "cblas3","Hermitian rank-2k update",    "C = alpha*A*B^H + ... + beta*C", mirror_test_her2k},
-    /* BLAS Level 2 (real) */
+    /* ---- BLAS Level 2 (real) ---- */
     {"gemv",   nullptr, "blas2", "General matrix-vector",       "y = alpha*op(A)*x + beta*y",     mirror_test_gemv},
     {"symv",   nullptr, "blas2", "Symmetric matrix-vector",     "y = alpha*A*x + beta*y",         mirror_test_symv},
     {"trmv",   nullptr, "blas2", "Triangular matrix-vector",    "x = op(A)*x",                    mirror_test_trmv},
@@ -48,7 +56,7 @@ static const MirrorRoutineEntry routines[] = {
     {"tpsv",   nullptr, "blas2", "Triangular packed solve",     "op(A)*x = b",                    mirror_test_tpsv},
     {"spr",    nullptr, "blas2", "Symmetric packed rank-1",     "A = alpha*x*x^T + A",            mirror_test_spr},
     {"spr2",   nullptr, "blas2", "Symmetric packed rank-2",     "A = alpha*x*y^T + alpha*y*x^T + A", mirror_test_spr2},
-    /* BLAS Level 2 (complex-only) */
+    /* ---- BLAS Level 2 (complex) ---- */
     {"hemv",   nullptr, "cblas2","Hermitian matrix-vector",     "y = alpha*A*x + beta*y",         mirror_test_hemv},
     {"hbmv",   nullptr, "cblas2","Hermitian band mat-vec",      "y = alpha*A*x + beta*y",         mirror_test_hbmv},
     {"hpmv",   nullptr, "cblas2","Hermitian packed mat-vec",    "y = alpha*A*x + beta*y",         mirror_test_hpmv},
@@ -58,7 +66,7 @@ static const MirrorRoutineEntry routines[] = {
     {"hpr",    nullptr, "cblas2","Hermitian packed rank-1",     "A = alpha*x*x^H + A",            mirror_test_hpr},
     {"her2",   nullptr, "cblas2","Hermitian rank-2 update",     "A = alpha*x*y^H + conj(alpha)*y*x^H + A", mirror_test_her2},
     {"hpr2",   nullptr, "cblas2","Hermitian packed rank-2",     "A = alpha*x*y^H + conj(alpha)*y*x^H + A", mirror_test_hpr2},
-    /* BLAS Level 1 (real) */
+    /* ---- BLAS Level 1 (real) ---- */
     {"rotg",   nullptr, "blas1", "Givens rotation setup",       "[c,s] = rotg(a,b)",              mirror_test_rotg},
     {"rotmg",  nullptr, "blas1", "Modified Givens setup",       "param = rotmg(d1,d2,x1,y1)",     mirror_test_rotmg},
     {"rot",    nullptr, "blas1", "Givens rotation apply",       "[x,y] = rot(x,y,c,s)",           mirror_test_rot},
@@ -71,11 +79,143 @@ static const MirrorRoutineEntry routines[] = {
     {"nrm2",   nullptr, "blas1", "Vector 2-norm",               "result = ||x||_2",               mirror_test_nrm2},
     {"asum",   nullptr, "blas1", "Sum of absolute values",      "result = sum|x_i|",              mirror_test_asum},
     {"iamax",  nullptr, "blas1", "Index of max abs value",      "result = argmax|x_i|",           mirror_test_iamax},
-    /* BLAS Level 1 (complex-only) */
+    /* ---- BLAS Level 1 (complex) ---- */
     {"dotc",   nullptr, "cblas1","Conjugated dot product",      "result = x^H*y",                 mirror_test_dotc},
     {"dotu",   nullptr, "cblas1","Unconjugated dot product",    "result = x^T*y",                 mirror_test_dotu},
     {"crot",   nullptr, "cblas1","Complex rotation apply",      "[x,y] = rot(x,y,c,s)",           mirror_test_crot},
     {"crscal", nullptr, "cblas1","Real scale of complex",       "x = alpha*x (alpha real)",        mirror_test_crscal},
+
+    /* ---- LAPACK Factorizations (real) ---- */
+    {"getrf",  nullptr, "lapack_fact", "LU factorization",           "A = P*L*U",           mirror_test_getrf},
+    {"potrf",  nullptr, "lapack_fact", "Cholesky factorization",     "A = L*L^T or U^T*U",  mirror_test_potrf},
+    {"sytrf",  nullptr, "lapack_fact", "Symmetric indefinite fact",  "A = U*D*U^T or L*D*L^T", mirror_test_sytrf},
+    {"geqrf",  nullptr, "lapack_fact", "QR factorization",           "A = Q*R",             mirror_test_geqrf},
+    {"gelqf",  nullptr, "lapack_fact", "LQ factorization",           "A = L*Q",             mirror_test_gelqf},
+    {"gebrd",  nullptr, "lapack_fact", "Bidiagonal reduction",       "A = Q*B*P^T",         mirror_test_gebrd},
+    {"sytrd",  nullptr, "lapack_fact", "Tridiagonal reduction",      "A = Q*T*Q^T",         mirror_test_sytrd},
+    /* ---- LAPACK Factorizations (complex) ---- */
+    {"cgetrf", "getrf", "clapack_fact","Complex LU factorization",   "A = P*L*U",           mirror_test_cgetrf},
+    {"cpotrf", "potrf", "clapack_fact","Complex Cholesky fact",      "A = L*L^H or U^H*U",  mirror_test_cpotrf},
+    {"cgeqrf", "geqrf", "clapack_fact","Complex QR factorization",   "A = Q*R",             mirror_test_cgeqrf},
+    {"cgelqf", "gelqf", "clapack_fact","Complex LQ factorization",   "A = L*Q",             mirror_test_cgelqf},
+    {"cgebrd", "gebrd", "clapack_fact","Complex bidiag reduction",   "A = Q*B*P^H",         mirror_test_cgebrd},
+    {"hetrf",  nullptr, "clapack_fact","Hermitian indefinite fact",   "A = U*D*U^H or L*D*L^H", mirror_test_hetrf},
+    {"hetrd",  nullptr, "clapack_fact","Hermitian tridiag reduction", "A = Q*T*Q^H",         mirror_test_hetrd},
+    {"csytrf", "sytrf", "clapack_fact","Complex sym indefinite fact", "A = U*D*U^T or L*D*L^T", mirror_test_csytrf},
+
+    /* ---- LAPACK Solvers (real) ---- */
+    {"gesv",   nullptr, "lapack_solve","General linear solve",       "A*X = B",             mirror_test_gesv},
+    {"posv",   nullptr, "lapack_solve","Positive definite solve",    "A*X = B (A SPD)",     mirror_test_posv},
+    {"sysv",   nullptr, "lapack_solve","Symmetric indefinite solve", "A*X = B (A sym)",     mirror_test_sysv},
+    {"gbsv",   nullptr, "lapack_solve","Band linear solve",          "A*X = B (A banded)",  mirror_test_gbsv},
+    {"gtsv",   nullptr, "lapack_solve","Tridiagonal solve",          "A*X = B (A tridiag)", mirror_test_gtsv},
+    {"gels",   nullptr, "lapack_solve","Least squares solve",        "min||A*X-B||",        mirror_test_gels},
+    {"gelsd",  nullptr, "lapack_solve","Least squares via SVD",      "min||A*X-B|| (SVD)",  mirror_test_gelsd},
+    /* ---- LAPACK Solvers (complex) ---- */
+    {"cgesv",  "gesv",  "clapack_solve","Complex general solve",     "A*X = B",             mirror_test_cgesv},
+    {"cposv",  "posv",  "clapack_solve","Complex pos-def solve",     "A*X = B (A HPD)",     mirror_test_cposv},
+    {"cgbsv",  "gbsv",  "clapack_solve","Complex band solve",        "A*X = B (A banded)",  mirror_test_cgbsv},
+    {"cgtsv",  "gtsv",  "clapack_solve","Complex tridiag solve",     "A*X = B (A tridiag)", mirror_test_cgtsv},
+    {"cgels",  "gels",  "clapack_solve","Complex least squares",     "min||A*X-B||",        mirror_test_cgels},
+    {"cgelsd", "gelsd", "clapack_solve","Complex LS via SVD",        "min||A*X-B|| (SVD)",  mirror_test_cgelsd},
+    {"hesv",   nullptr, "clapack_solve","Hermitian indef solve",     "A*X = B (A herm)",    mirror_test_hesv},
+    {"csysv",  "sysv",  "clapack_solve","Complex sym indef solve",   "A*X = B (A csym)",    mirror_test_csysv},
+
+    /* ---- LAPACK Eigenvalues (real) ---- */
+    {"syev",   nullptr, "lapack_eig",  "Symmetric eigenvalues (QR)", "A*v = lambda*v",      mirror_test_syev},
+    {"syevd",  nullptr, "lapack_eig",  "Symmetric eigenvalues (D&C)","A*v = lambda*v",      mirror_test_syevd},
+    {"syevr",  nullptr, "lapack_eig",  "Symmetric eigenvalues (MRRR)","A*v = lambda*v",     mirror_test_syevr},
+    {"geev",   nullptr, "lapack_eig",  "General eigenvalues",        "A*v = lambda*v",      mirror_test_geev},
+    {"gees",   nullptr, "lapack_eig",  "Schur decomposition",        "A = V*T*V^T",         mirror_test_gees},
+    {"gesvd",  nullptr, "lapack_eig",  "SVD (QR)",                   "A = U*S*V^T",         mirror_test_gesvd},
+    {"gesdd",  nullptr, "lapack_eig",  "SVD (D&C)",                  "A = U*S*V^T",         mirror_test_gesdd},
+    {"sygv",   nullptr, "lapack_eig",  "Gen symmetric eigenvalues",  "A*v = lambda*B*v",    mirror_test_sygv},
+    /* ---- LAPACK Eigenvalues (complex) ---- */
+    {"heev",   nullptr, "clapack_eig", "Hermitian eigenvalues (QR)", "A*v = lambda*v",      mirror_test_heev},
+    {"heevd",  nullptr, "clapack_eig", "Hermitian eigenvalues (D&C)","A*v = lambda*v",      mirror_test_heevd},
+    {"heevr",  nullptr, "clapack_eig", "Hermitian eigenvalues (MRRR)","A*v = lambda*v",     mirror_test_heevr},
+    {"hegv",   nullptr, "clapack_eig", "Gen hermitian eigenvalues",  "A*v = lambda*B*v",    mirror_test_hegv},
+    {"cgesvd", "gesvd", "clapack_eig", "Complex SVD (QR)",           "A = U*S*V^H",         mirror_test_cgesvd},
+    {"cgesdd", "gesdd", "clapack_eig", "Complex SVD (D&C)",          "A = U*S*V^H",         mirror_test_cgesdd},
+    {"cgeev",  "geev",  "clapack_eig", "Complex general eigenvalues","A*v = lambda*v",      mirror_test_cgeev},
+    {"cgees",  "gees",  "clapack_eig", "Complex Schur decomposition","A = V*T*V^H",         mirror_test_cgees},
+
+    /* ---- LAPACK Auxiliary (real) ---- */
+    {"getrs",  nullptr, "lapack_aux",  "LU-based solve",             "op(A)*X = B",         mirror_test_getrs},
+    {"getri",  nullptr, "lapack_aux",  "LU-based inverse",           "A^-1",                mirror_test_getri},
+    {"potrs",  nullptr, "lapack_aux",  "Cholesky-based solve",       "A*X = B",             mirror_test_potrs},
+    {"potri",  nullptr, "lapack_aux",  "Cholesky-based inverse",     "A^-1",                mirror_test_potri},
+    {"orgqr",  nullptr, "lapack_aux",  "Generate Q from QR",         "Q from QR",           mirror_test_orgqr},
+    {"ormqr",  nullptr, "lapack_aux",  "Multiply by Q from QR",      "C = op(Q)*C",         mirror_test_ormqr},
+    {"gecon",  nullptr, "lapack_aux",  "Condition number estimate",   "rcond(A)",            mirror_test_gecon},
+    {"lange",  nullptr, "lapack_aux",  "General matrix norm",         "||A||",               mirror_test_lange},
+    {"lansy",  nullptr, "lapack_aux",  "Symmetric matrix norm",       "||A|| (sym)",         mirror_test_lansy},
+    {"lacpy",  nullptr, "lapack_aux",  "Matrix copy",                 "B = A",               mirror_test_lacpy},
+    {"laswp",  nullptr, "lapack_aux",  "Row permutation",             "A = P*A",             mirror_test_laswp},
+    /* ---- LAPACK Auxiliary (complex) ---- */
+    {"cgetrs", "getrs", "clapack_aux", "Complex LU solve",           "op(A)*X = B",         mirror_test_cgetrs},
+    {"cgetri", "getri", "clapack_aux", "Complex LU inverse",         "A^-1",                mirror_test_cgetri},
+    {"cpotrs", "potrs", "clapack_aux", "Complex Cholesky solve",     "A*X = B",             mirror_test_cpotrs},
+    {"cpotri", "potri", "clapack_aux", "Complex Cholesky inverse",   "A^-1",                mirror_test_cpotri},
+    {"ungqr",  nullptr, "clapack_aux", "Generate unitary Q from QR", "Q from QR",           mirror_test_ungqr},
+    {"unmqr",  nullptr, "clapack_aux", "Multiply by unitary Q",      "C = op(Q)*C",         mirror_test_unmqr},
+    {"cgecon", "gecon", "clapack_aux", "Complex condition number",    "rcond(A)",            mirror_test_cgecon},
+    {"clange", "lange", "clapack_aux", "Complex matrix norm",         "||A||",               mirror_test_clange},
+    {"lanhe",  nullptr, "clapack_aux", "Hermitian matrix norm",       "||A|| (herm)",        mirror_test_lanhe},
+    {"clacpy", "lacpy", "clapack_aux", "Complex matrix copy",         "B = A",               mirror_test_clacpy},
+    {"claswp", "laswp", "clapack_aux", "Complex row permutation",     "A = P*A",             mirror_test_claswp},
+    {"clansy", "lansy", "clapack_aux", "Complex sym matrix norm",     "||A|| (csym)",        mirror_test_clansy},
+
+    /* ---- PBLAS Level 3 (real) ---- */
+    {"pgemm",  nullptr, "pblas3",  "Parallel GEMM",             "C = alpha*op(A)*op(B) + beta*C", mirror_test_pgemm},
+    {"ptrsm",  nullptr, "pblas3",  "Parallel triangular solve", "op(A)*X = alpha*B",              mirror_test_ptrsm},
+    {"psymm",  nullptr, "pblas3",  "Parallel symmetric mult",   "C = alpha*A*B + beta*C",         mirror_test_psymm},
+    {"psyrk",  nullptr, "pblas3",  "Parallel sym rank-k",       "C = alpha*A*A^T + beta*C",       mirror_test_psyrk},
+    {"psyr2k", nullptr, "pblas3",  "Parallel sym rank-2k",      "C = alpha*A*B^T + ... + beta*C", mirror_test_psyr2k},
+    {"ptrmm",  nullptr, "pblas3",  "Parallel tri multiply",     "B = alpha*op(A)*B",              mirror_test_ptrmm},
+    {"ptran",  nullptr, "pblas3",  "Parallel transpose",        "C = alpha*A^T + beta*C",         mirror_test_ptran},
+    /* ---- PBLAS Level 3 (complex) ---- */
+    {"phemm",  nullptr, "cpblas3", "Parallel hermitian mult",   "C = alpha*A*B + beta*C",         mirror_test_phemm},
+    {"pherk",  nullptr, "cpblas3", "Parallel herm rank-k",      "C = alpha*A*A^H + beta*C",       mirror_test_pherk},
+    {"pher2k", nullptr, "cpblas3", "Parallel herm rank-2k",     "C = alpha*A*B^H + ... + beta*C", mirror_test_pher2k},
+    {"ptranc", nullptr, "cpblas3", "Parallel conj transpose",   "C = alpha*A^H + beta*C",         mirror_test_ptranc},
+    {"ptranu", nullptr, "cpblas3", "Parallel unconj transpose", "C = alpha*A^T + beta*C",         mirror_test_ptranu},
+    /* ---- PBLAS Level 2 (real) ---- */
+    {"pgemv",  nullptr, "pblas2",  "Parallel GEMV",             "y = alpha*op(A)*x + beta*y",     mirror_test_pgemv},
+    {"psymv",  nullptr, "pblas2",  "Parallel sym mat-vec",      "y = alpha*A*x + beta*y",         mirror_test_psymv},
+    {"ptrmv",  nullptr, "pblas2",  "Parallel tri mat-vec",      "x = op(A)*x",                    mirror_test_ptrmv},
+    {"ptrsv",  nullptr, "pblas2",  "Parallel tri solve (vec)",  "op(A)*x = b",                    mirror_test_ptrsv},
+    {"pger",   nullptr, "pblas2",  "Parallel rank-1 update",    "A = alpha*x*y^T + A",            mirror_test_pger},
+    {"psyr",   nullptr, "pblas2",  "Parallel sym rank-1",       "A = alpha*x*x^T + A",            mirror_test_psyr},
+    {"psyr2",  nullptr, "pblas2",  "Parallel sym rank-2",       "A = alpha*x*y^T + alpha*y*x^T + A", mirror_test_psyr2},
+    /* ---- PBLAS Level 2 (complex) ---- */
+    {"phemv",  nullptr, "cpblas2", "Parallel herm mat-vec",     "y = alpha*A*x + beta*y",         mirror_test_phemv},
+    {"pgeru",  nullptr, "cpblas2", "Parallel unconj rank-1",    "A = alpha*x*y^T + A",            mirror_test_pgeru},
+    {"pgerc",  nullptr, "cpblas2", "Parallel conj rank-1",      "A = alpha*x*y^H + A",            mirror_test_pgerc},
+    {"pher",   nullptr, "cpblas2", "Parallel herm rank-1",      "A = alpha*x*x^H + A",            mirror_test_pher},
+    {"pher2",  nullptr, "cpblas2", "Parallel herm rank-2",      "A = alpha*x*y^H + conj(alpha)*y*x^H + A", mirror_test_pher2},
+    /* ---- PBLAS Level 1 (real) ---- */
+    {"pswap",  nullptr, "pblas1",  "Parallel vector swap",      "x <-> y",                        mirror_test_pswap},
+    {"pscal",  nullptr, "pblas1",  "Parallel vector scale",     "x = alpha*x",                    mirror_test_pscal},
+    {"pcopy",  nullptr, "pblas1",  "Parallel vector copy",      "y = x",                          mirror_test_pcopy},
+    {"paxpy",  nullptr, "pblas1",  "Parallel vector axpy",      "y = alpha*x + y",                mirror_test_paxpy},
+    {"pdot",   nullptr, "pblas1",  "Parallel dot product",      "result = x^T*y",                 mirror_test_pdot},
+    {"pnrm2",  nullptr, "pblas1",  "Parallel 2-norm",           "result = ||x||_2",               mirror_test_pnrm2},
+    {"pasum",  nullptr, "pblas1",  "Parallel absolute sum",     "result = sum|x_i|",              mirror_test_pasum},
+    {"pamax",  nullptr, "pblas1",  "Parallel max abs value",    "result = max|x_i|",              mirror_test_pamax},
+    /* ---- PBLAS Level 1 (complex) ---- */
+    {"pdotc",  nullptr, "cpblas1", "Parallel conj dot",         "result = x^H*y",                 mirror_test_pdotc},
+    {"pdotu",  nullptr, "cpblas1", "Parallel unconj dot",       "result = x^T*y",                 mirror_test_pdotu},
+
+    /* ---- BLACS ---- */
+    {"blacs_setup",  nullptr,   "blacs", "BLACS grid setup",      "grid init/query",    mirror_test_blacs_setup},
+    {"blacs_gesd2d", "gesd2d",  "blacs", "General send/recv",     "point-to-point",     mirror_test_blacs_gesd2d},
+    {"blacs_trsd2d", "trsd2d",  "blacs", "Triangular send/recv",  "point-to-point tri", mirror_test_blacs_trsd2d},
+    {"blacs_gebs2d", "gebs2d",  "blacs", "General broadcast",     "broadcast",          mirror_test_blacs_gebs2d},
+    {"blacs_trbs2d", "trbs2d",  "blacs", "Triangular broadcast",  "broadcast tri",      mirror_test_blacs_trbs2d},
+    {"blacs_gsum2d", "gsum2d",  "blacs", "Global sum",            "combine sum",        mirror_test_blacs_gsum2d},
+    {"blacs_gamx2d", "gamx2d",  "blacs", "Global max",            "combine max",        mirror_test_blacs_gamx2d},
+    {"blacs_gamn2d", "gamn2d",  "blacs", "Global min",            "combine min",        mirror_test_blacs_gamn2d},
 };
 
 static constexpr int num_routines = sizeof(routines) / sizeof(routines[0]);
@@ -93,9 +233,13 @@ static const MirrorRoutineEntry *find_routine(const char *name) {
 
 static bool is_batch(const std::string &name) {
     static const char *batches[] = {
-        "all", "blas", "cblas",
-        "blas1", "blas2", "blas3",
-        "cblas1", "cblas2", "cblas3",
+        "all",
+        "blas", "cblas", "blas1", "blas2", "blas3", "cblas1", "cblas2", "cblas3",
+        "lapack", "clapack",
+        "lapack_fact", "clapack_fact", "lapack_solve", "clapack_solve",
+        "lapack_eig", "clapack_eig", "lapack_aux", "clapack_aux",
+        "pblas", "cpblas", "pblas1", "pblas2", "pblas3", "cpblas1", "cpblas2", "cpblas3",
+        "blacs",
     };
     for (auto b : batches)
         if (name == b) return true;
@@ -104,8 +248,15 @@ static bool is_batch(const std::string &name) {
 
 static bool category_matches(const char *cat, const std::string &batch) {
     if (batch == "all") return true;
-    if (batch == "blas")  return std::strncmp(cat, "blas", 4) == 0;
-    if (batch == "cblas") return std::strncmp(cat, "cblas", 5) == 0;
+    /* Top-level groups */
+    if (batch == "blas")    return std::strncmp(cat, "blas", 4) == 0;
+    if (batch == "cblas")   return std::strncmp(cat, "cblas", 5) == 0;
+    if (batch == "lapack")  return std::strstr(cat, "lapack") != nullptr;
+    if (batch == "clapack") return std::strstr(cat, "clapack") != nullptr;
+    if (batch == "pblas")   return std::strstr(cat, "pblas") != nullptr;
+    if (batch == "cpblas")  return std::strncmp(cat, "cpblas", 6) == 0;
+    if (batch == "blacs")   return std::strcmp(cat, "blacs") == 0;
+    /* Exact match */
     return batch == cat;
 }
 
@@ -122,7 +273,7 @@ static void run_routine(const MirrorRoutineEntry &r,
 /* ------------------------------------------------------------------ */
 
 int main(int argc, char **argv) {
-    CLI::App app{"mirror-tester: compare two BLAS libraries"};
+    CLI::App app{"mirror-tester: compare two libraries"};
 
     bool list_flag = false;
     std::string routine_name;
@@ -148,6 +299,7 @@ int main(int argc, char **argv) {
     int kl = 2, ku = 2;
     int incx = 1, incy = 1;
     int ld_pad = 0;
+    int mb = 0, nb_val = 0;
     double threshold = -1.0;
     std::string format = "text";
     std::string reference = "a";
@@ -186,6 +338,8 @@ int main(int argc, char **argv) {
     app.add_option("--incx", incx, "Increment for x")->default_val(1);
     app.add_option("--incy", incy, "Increment for y")->default_val(1);
     app.add_option("--ld-pad", ld_pad, "Leading dimension padding")->default_val(0);
+    app.add_option("--mb", mb, "PBLAS row block size")->default_val(0);
+    app.add_option("--nb", nb_val, "PBLAS col block size")->default_val(0);
     app.add_option("--threshold", threshold, "Error threshold (exit nonzero if exceeded)");
     app.add_option("--format", format, "Output format: text/json/csv")->default_val("text");
     app.add_option("--reference", reference, "Which side is reference: a or b")->default_val("a");
@@ -200,7 +354,7 @@ int main(int argc, char **argv) {
                 last_cat = routines[i].category;
                 std::printf("\n--- %s ---\n", last_cat);
             }
-            std::printf("  %-10s %s  [%s]\n",
+            std::printf("  %-14s %s  [%s]\n",
                         routines[i].name, routines[i].description,
                         routines[i].formula);
         }
@@ -283,6 +437,7 @@ int main(int argc, char **argv) {
     params.kl = kl; params.ku = ku;
     params.incx = incx; params.incy = incy;
     params.ld_pad = ld_pad;
+    params.mb = mb; params.nb = nb_val;
     params.seed = seed;
 
     /* Build MirrorConfig */
@@ -312,7 +467,10 @@ int main(int argc, char **argv) {
                 continue;
 
             /* Skip complex routines if side doesn't have complex enabled */
-            bool is_complex_routine = (std::strncmp(routines[i].category, "cblas", 5) == 0);
+            const char *cat = routines[i].category;
+            bool is_complex_routine = (std::strncmp(cat, "cblas", 5) == 0 ||
+                                        std::strncmp(cat, "clapack", 7) == 0 ||
+                                        std::strncmp(cat, "cpblas", 6) == 0);
             if (is_complex_routine && (!complex_a || !complex_b))
                 continue;
 

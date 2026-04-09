@@ -352,12 +352,155 @@ set(MIRROR_BLAS1_SOURCES
     mirror/blas/level1/crscal.cpp
 )
 
+set(MIRROR_LAPACK_FACT_SOURCES
+    mirror/lapack/factorizations/getrf.cpp
+    mirror/lapack/factorizations/potrf.cpp
+    mirror/lapack/factorizations/sytrf.cpp
+    mirror/lapack/factorizations/geqrf.cpp
+    mirror/lapack/factorizations/gelqf.cpp
+    mirror/lapack/factorizations/gebrd.cpp
+    mirror/lapack/factorizations/sytrd.cpp
+    mirror/lapack/factorizations/cgetrf.cpp
+    mirror/lapack/factorizations/cpotrf.cpp
+    mirror/lapack/factorizations/cgeqrf.cpp
+    mirror/lapack/factorizations/cgelqf.cpp
+    mirror/lapack/factorizations/cgebrd.cpp
+    mirror/lapack/factorizations/hetrf.cpp
+    mirror/lapack/factorizations/hetrd.cpp
+    mirror/lapack/factorizations/csytrf.cpp
+)
+
+set(MIRROR_LAPACK_SOLVE_SOURCES
+    mirror/lapack/solvers/gesv.cpp
+    mirror/lapack/solvers/posv.cpp
+    mirror/lapack/solvers/sysv.cpp
+    mirror/lapack/solvers/gbsv.cpp
+    mirror/lapack/solvers/gtsv.cpp
+    mirror/lapack/solvers/gels.cpp
+    mirror/lapack/solvers/gelsd.cpp
+    mirror/lapack/solvers/cgesv.cpp
+    mirror/lapack/solvers/cposv.cpp
+    mirror/lapack/solvers/cgbsv.cpp
+    mirror/lapack/solvers/cgtsv.cpp
+    mirror/lapack/solvers/cgels.cpp
+    mirror/lapack/solvers/cgelsd.cpp
+    mirror/lapack/solvers/hesv.cpp
+    mirror/lapack/solvers/csysv.cpp
+)
+
+set(MIRROR_LAPACK_EIG_SOURCES
+    mirror/lapack/eigenvalues/syev.cpp
+    mirror/lapack/eigenvalues/syevd.cpp
+    mirror/lapack/eigenvalues/syevr.cpp
+    mirror/lapack/eigenvalues/geev.cpp
+    mirror/lapack/eigenvalues/gees.cpp
+    mirror/lapack/eigenvalues/gesvd.cpp
+    mirror/lapack/eigenvalues/gesdd.cpp
+    mirror/lapack/eigenvalues/sygv.cpp
+    mirror/lapack/eigenvalues/heev.cpp
+    mirror/lapack/eigenvalues/heevd.cpp
+    mirror/lapack/eigenvalues/heevr.cpp
+    mirror/lapack/eigenvalues/hegv.cpp
+    mirror/lapack/eigenvalues/cgesvd.cpp
+    mirror/lapack/eigenvalues/cgesdd.cpp
+    mirror/lapack/eigenvalues/cgeev.cpp
+    mirror/lapack/eigenvalues/cgees.cpp
+)
+
+set(MIRROR_LAPACK_AUX_SOURCES
+    mirror/lapack/auxiliary/getrs.cpp
+    mirror/lapack/auxiliary/getri.cpp
+    mirror/lapack/auxiliary/potrs.cpp
+    mirror/lapack/auxiliary/potri.cpp
+    mirror/lapack/auxiliary/orgqr.cpp
+    mirror/lapack/auxiliary/ormqr.cpp
+    mirror/lapack/auxiliary/gecon.cpp
+    mirror/lapack/auxiliary/lange.cpp
+    mirror/lapack/auxiliary/lansy.cpp
+    mirror/lapack/auxiliary/lacpy.cpp
+    mirror/lapack/auxiliary/laswp.cpp
+    mirror/lapack/auxiliary/cgetrs.cpp
+    mirror/lapack/auxiliary/cgetri.cpp
+    mirror/lapack/auxiliary/cpotrs.cpp
+    mirror/lapack/auxiliary/cpotri.cpp
+    mirror/lapack/auxiliary/ungqr.cpp
+    mirror/lapack/auxiliary/unmqr.cpp
+    mirror/lapack/auxiliary/cgecon.cpp
+    mirror/lapack/auxiliary/clange.cpp
+    mirror/lapack/auxiliary/lanhe.cpp
+    mirror/lapack/auxiliary/clacpy.cpp
+    mirror/lapack/auxiliary/claswp.cpp
+    mirror/lapack/auxiliary/clansy.cpp
+)
+
+set(MIRROR_PBLAS3_SOURCES
+    mirror/pblas/level3/pgemm.cpp
+    mirror/pblas/level3/ptrsm.cpp
+    mirror/pblas/level3/psymm.cpp
+    mirror/pblas/level3/psyrk.cpp
+    mirror/pblas/level3/psyr2k.cpp
+    mirror/pblas/level3/ptrmm.cpp
+    mirror/pblas/level3/phemm.cpp
+    mirror/pblas/level3/pherk.cpp
+    mirror/pblas/level3/pher2k.cpp
+    mirror/pblas/level3/ptran.cpp
+    mirror/pblas/level3/ptranc.cpp
+    mirror/pblas/level3/ptranu.cpp
+)
+
+set(MIRROR_PBLAS2_SOURCES
+    mirror/pblas/level2/pgemv.cpp
+    mirror/pblas/level2/psymv.cpp
+    mirror/pblas/level2/ptrmv.cpp
+    mirror/pblas/level2/ptrsv.cpp
+    mirror/pblas/level2/pger.cpp
+    mirror/pblas/level2/psyr.cpp
+    mirror/pblas/level2/psyr2.cpp
+    mirror/pblas/level2/phemv.cpp
+    mirror/pblas/level2/pgeru.cpp
+    mirror/pblas/level2/pgerc.cpp
+    mirror/pblas/level2/pher.cpp
+    mirror/pblas/level2/pher2.cpp
+)
+
+set(MIRROR_PBLAS1_SOURCES
+    mirror/pblas/level1/pswap.cpp
+    mirror/pblas/level1/pscal.cpp
+    mirror/pblas/level1/pcopy.cpp
+    mirror/pblas/level1/paxpy.cpp
+    mirror/pblas/level1/pdot.cpp
+    mirror/pblas/level1/pnrm2.cpp
+    mirror/pblas/level1/pasum.cpp
+    mirror/pblas/level1/pamax.cpp
+    mirror/pblas/level1/pdotc.cpp
+    mirror/pblas/level1/pdotu.cpp
+)
+
+set(MIRROR_BLACS_SOURCES
+    mirror/blacs/context/blacs_setup.cpp
+    mirror/blacs/p2p/blacs_gesd2d.cpp
+    mirror/blacs/p2p/blacs_trsd2d.cpp
+    mirror/blacs/broadcast/blacs_gebs2d.cpp
+    mirror/blacs/broadcast/blacs_trbs2d.cpp
+    mirror/blacs/combine/blacs_gsum2d.cpp
+    mirror/blacs/combine/blacs_gamx2d.cpp
+    mirror/blacs/combine/blacs_gamn2d.cpp
+)
+
 add_executable(mirror_tester
     mirror/main.cpp
     ${MIRROR_CORE_SOURCES}
     ${MIRROR_BLAS3_SOURCES}
     ${MIRROR_BLAS2_SOURCES}
     ${MIRROR_BLAS1_SOURCES}
+    ${MIRROR_LAPACK_FACT_SOURCES}
+    ${MIRROR_LAPACK_SOLVE_SOURCES}
+    ${MIRROR_LAPACK_EIG_SOURCES}
+    ${MIRROR_LAPACK_AUX_SOURCES}
+    ${MIRROR_PBLAS3_SOURCES}
+    ${MIRROR_PBLAS2_SOURCES}
+    ${MIRROR_PBLAS1_SOURCES}
+    ${MIRROR_BLACS_SOURCES}
     ${CORE_SOURCES}
 )
 

@@ -3,6 +3,7 @@
 #include "mirror_gen.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <cstdio>
 #include <random>
@@ -345,6 +346,99 @@ void gen_mpfr_packed_triangular(MpfrMatrix &dst, int n, char uplo,
                 }
             }
         }
+    }
+
+    update_seed(gen, seed);
+}
+
+/* ------------------------------------------------------------------ */
+/* gen_mpfr_positive_definite_matrix                                    */
+/* ------------------------------------------------------------------ */
+
+void gen_mpfr_positive_definite_matrix(MpfrMatrix &dst, mpfr_prec_t prec,
+                                        unsigned *seed)
+{
+    int n = dst.rows();
+    gen_mpfr_symmetric_matrix(dst, 'L', prec, seed);
+    /* Add n*I to make positive definite */
+    for (int i = 0; i < n; ++i) {
+        double diag = mpfr_get_d(dst.at(i, i), MPFR_RNDN);
+        mpfr_set_d(dst.at(i, i), diag + static_cast<double>(n), MPFR_RNDN);
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* gen_mpfr_diag_dominant_symmetric                                     */
+/* ------------------------------------------------------------------ */
+
+void gen_mpfr_diag_dominant_symmetric(MpfrMatrix &dst, char uplo,
+                                       mpfr_prec_t prec, unsigned *seed)
+{
+    int n = dst.rows();
+    gen_mpfr_symmetric_matrix(dst, uplo, prec, seed);
+    for (int i = 0; i < n; ++i) {
+        double diag = mpfr_get_d(dst.at(i, i), MPFR_RNDN);
+        mpfr_set_d(dst.at(i, i), diag + static_cast<double>(n), MPFR_RNDN);
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* gen_mpfr_gbsv_band_matrix                                           */
+/* ------------------------------------------------------------------ */
+
+void gen_mpfr_gbsv_band_matrix(MpfrMatrix &dst, int n, int kl, int ku,
+                                 mpfr_prec_t prec, unsigned *seed)
+{
+    int ldab = 2 * kl + ku + 1;
+    auto gen = make_rng(seed);
+    std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+    /* Zero-fill the entire storage */
+    for (int j = 0; j < n; ++j)
+        for (int r = 0; r < ldab; ++r)
+            mpfr_set_d(dst.at(r, j), 0.0, MPFR_RNDN);
+
+    /* Fill band entries: A(i,j) stored at AB(kl+ku+i-j, j) */
+    for (int j = 0; j < n; ++j) {
+        int i_min = std::max(0, j - ku);
+        int i_max = std::min(n - 1, j + kl);
+        for (int i = i_min; i <= i_max; ++i) {
+            int ab_row = kl + ku + i - j;
+            mpfr_set_d(dst.at(ab_row, j), rand_val(gen, dist), MPFR_RNDN);
+        }
+        /* Add diagonal dominance */
+        int diag_row = kl + ku;
+        double d = mpfr_get_d(dst.at(diag_row, j), MPFR_RNDN);
+        mpfr_set_d(dst.at(diag_row, j), d + static_cast<double>(n), MPFR_RNDN);
+    }
+
+    update_seed(gen, seed);
+}
+
+/* ------------------------------------------------------------------ */
+/* gen_mpfr_tridiagonal                                                */
+/* ------------------------------------------------------------------ */
+
+void gen_mpfr_tridiagonal(MpfrMatrix &dl, MpfrMatrix &d, MpfrMatrix &du,
+                            int n, mpfr_prec_t prec, unsigned *seed)
+{
+    auto gen = make_rng(seed);
+    std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+    /* Generate sub/super-diagonals */
+    for (int i = 0; i < n - 1; ++i) {
+        mpfr_set_d(dl.at(i, 0), rand_val(gen, dist), MPFR_RNDN);
+        mpfr_set_d(du.at(i, 0), rand_val(gen, dist), MPFR_RNDN);
+    }
+
+    /* Generate diagonal with dominance */
+    for (int i = 0; i < n; ++i) {
+        double sum = 0.0;
+        if (i > 0) sum += std::abs(mpfr_get_d(dl.at(i - 1, 0), MPFR_RNDN));
+        if (i < n - 1) sum += std::abs(mpfr_get_d(du.at(i, 0), MPFR_RNDN));
+        double dv = sum + static_cast<double>(n) + std::abs(rand_val(gen, dist));
+        if (gen() & 1) dv = -dv;
+        mpfr_set_d(d.at(i, 0), dv, MPFR_RNDN);
     }
 
     update_seed(gen, seed);
@@ -718,4 +812,136 @@ void *mpfr_complex_scalar_to_native(const MpfrComplexScalar &src,
                           MPFR_RNDN);
 
     return static_cast<void *>(arr);
+}
+
+/* ================================================================== */
+/* Additional complex generators for LAPACK mirror tests               */
+/* ================================================================== */
+
+void gen_mpfr_hermitian_positive_definite(MpfrComplexMatrix &dst,
+                                           mpfr_prec_t prec, unsigned *seed)
+{
+    int n = dst.rows();
+    gen_mpfr_hermitian_matrix(dst, 'L', prec, seed);
+    for (int i = 0; i < n; ++i) {
+        double diag = mpfr_get_d(dst.re(i, i), MPFR_RNDN);
+        mpfr_set_d(dst.re(i, i), diag + static_cast<double>(n), MPFR_RNDN);
+        mpfr_set_d(dst.im(i, i), 0.0, MPFR_RNDN);
+    }
+}
+
+void gen_mpfr_diag_dominant_hermitian(MpfrComplexMatrix &dst, char uplo,
+                                       mpfr_prec_t prec, unsigned *seed)
+{
+    int n = dst.rows();
+    gen_mpfr_hermitian_matrix(dst, uplo, prec, seed);
+    for (int i = 0; i < n; ++i) {
+        double diag = mpfr_get_d(dst.re(i, i), MPFR_RNDN);
+        mpfr_set_d(dst.re(i, i), diag + static_cast<double>(n), MPFR_RNDN);
+        mpfr_set_d(dst.im(i, i), 0.0, MPFR_RNDN);
+    }
+}
+
+void gen_mpfr_diag_dominant_complex_symmetric(MpfrComplexMatrix &dst,
+                                               char uplo, mpfr_prec_t prec,
+                                               unsigned *seed)
+{
+    int n = dst.rows();
+    gen_mpfr_complex_symmetric_matrix(dst, uplo, prec, seed);
+    for (int i = 0; i < n; ++i) {
+        double diag = mpfr_get_d(dst.re(i, i), MPFR_RNDN);
+        mpfr_set_d(dst.re(i, i), diag + static_cast<double>(n), MPFR_RNDN);
+    }
+}
+
+void gen_mpfr_complex_symmetric_matrix(MpfrComplexMatrix &dst, char uplo,
+                                        mpfr_prec_t prec, unsigned *seed)
+{
+    int n = dst.rows();
+    auto gen = make_rng(seed);
+    std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+    for (int j = 0; j < n; ++j) {
+        for (int i = 0; i < n; ++i) {
+            if (i == j) {
+                mpfr_set_d(dst.re(i, j), rand_val(gen, dist), MPFR_RNDN);
+                mpfr_set_d(dst.im(i, j), rand_val(gen, dist), MPFR_RNDN);
+            } else if ((uplo == 'U' && i < j) || (uplo == 'L' && i > j)) {
+                double rv = rand_val(gen, dist);
+                double iv = rand_val(gen, dist);
+                mpfr_set_d(dst.re(i, j), rv, MPFR_RNDN);
+                mpfr_set_d(dst.im(i, j), iv, MPFR_RNDN);
+                /* Symmetric (not conjugate) */
+                mpfr_set_d(dst.re(j, i), rv, MPFR_RNDN);
+                mpfr_set_d(dst.im(j, i), iv, MPFR_RNDN);
+            }
+        }
+    }
+
+    update_seed(gen, seed);
+}
+
+void gen_mpfr_complex_gbsv_band_matrix(MpfrComplexMatrix &dst, int n,
+                                         int kl, int ku, mpfr_prec_t prec,
+                                         unsigned *seed)
+{
+    int ldab = 2 * kl + ku + 1;
+    auto gen = make_rng(seed);
+    std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+    for (int j = 0; j < n; ++j)
+        for (int r = 0; r < ldab; ++r) {
+            mpfr_set_d(dst.re(r, j), 0.0, MPFR_RNDN);
+            mpfr_set_d(dst.im(r, j), 0.0, MPFR_RNDN);
+        }
+
+    for (int j = 0; j < n; ++j) {
+        int i_min = std::max(0, j - ku);
+        int i_max = std::min(n - 1, j + kl);
+        for (int i = i_min; i <= i_max; ++i) {
+            int ab_row = kl + ku + i - j;
+            mpfr_set_d(dst.re(ab_row, j), rand_val(gen, dist), MPFR_RNDN);
+            mpfr_set_d(dst.im(ab_row, j), rand_val(gen, dist), MPFR_RNDN);
+        }
+        int diag_row = kl + ku;
+        double d = mpfr_get_d(dst.re(diag_row, j), MPFR_RNDN);
+        mpfr_set_d(dst.re(diag_row, j), d + static_cast<double>(n), MPFR_RNDN);
+    }
+
+    update_seed(gen, seed);
+}
+
+void gen_mpfr_complex_tridiagonal(MpfrComplexMatrix &dl, MpfrComplexMatrix &d,
+                                    MpfrComplexMatrix &du, int n,
+                                    mpfr_prec_t prec, unsigned *seed)
+{
+    auto gen = make_rng(seed);
+    std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+    for (int i = 0; i < n - 1; ++i) {
+        mpfr_set_d(dl.re(i, 0), rand_val(gen, dist), MPFR_RNDN);
+        mpfr_set_d(dl.im(i, 0), rand_val(gen, dist), MPFR_RNDN);
+        mpfr_set_d(du.re(i, 0), rand_val(gen, dist), MPFR_RNDN);
+        mpfr_set_d(du.im(i, 0), rand_val(gen, dist), MPFR_RNDN);
+    }
+
+    for (int i = 0; i < n; ++i) {
+        double sum = 0.0;
+        if (i > 0) {
+            double r = mpfr_get_d(dl.re(i - 1, 0), MPFR_RNDN);
+            double im = mpfr_get_d(dl.im(i - 1, 0), MPFR_RNDN);
+            sum += std::sqrt(r * r + im * im);
+        }
+        if (i < n - 1) {
+            double r = mpfr_get_d(du.re(i, 0), MPFR_RNDN);
+            double im = mpfr_get_d(du.im(i, 0), MPFR_RNDN);
+            sum += std::sqrt(r * r + im * im);
+        }
+        double dv = sum + static_cast<double>(n) + std::abs(rand_val(gen, dist));
+        if (gen() & 1) dv = -dv;
+        mpfr_set_d(d.re(i, 0), dv, MPFR_RNDN);
+        mpfr_set_d(d.im(i, 0), 0.0, MPFR_RNDN);
+    }
+
+    update_seed(gen, seed);
 }
